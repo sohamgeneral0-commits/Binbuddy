@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BinBuddy - Citizen Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" />
+    <style>
+        :root { --primary: #1a5276; --secondary: #1e8449; --light-bg: #f0f4f8; --sidebar-w: 250px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--light-bg); display: flex; min-height: 100vh; }
+        
+        #sidebar {
+            width: var(--sidebar-w);
+            background: var(--primary);
+            color: #fff;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            overflow-y: auto;
+        }
+        #sidebar .brand {
+            padding: 20px;
+            background: rgba(0, 0, 0, .25);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        #sidebar .brand i { font-size: 1.6rem; color: #2ecc71; }
+        #sidebar nav a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            color: rgba(255, 255, 255, .8);
+            text-decoration: none;
+            transition: .2s;
+        }
+        #sidebar nav a:hover, #sidebar nav a.active {
+            background: rgba(255, 255, 255, .12);
+            color: #fff;
+            border-left: 3px solid #2ecc71;
+        }
+        #sidebar nav a i { width: 20px; text-align: center; }
+        #sidebar .sidebar-footer {
+            padding: 15px 20px;
+            font-size: .75rem;
+            color: rgba(255, 255, 255, .35);
+            border-top: 1px solid rgba(255, 255, 255, .1);
+            margin-top: auto;
+        }
+
+        #main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; }
+
+        #topbar {
+            background: #fff;
+            padding: 0 24px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+            position: sticky;
+            top: 0;
+            z-index: 99;
+        }
+        .page-title { font-weight: 600; color: var(--primary); font-size: 1.05rem; }
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .88rem;
+            cursor: pointer;
+        }
+        .avatar {
+            width: 32px;
+            height: 32px;
+            background: var(--secondary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .page-section { display: none; padding: 24px; animation: fadeIn .2s; }
+        .page-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px) } to { opacity: 1; transform: none } }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+        .kpi-card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .07);
+        }
+        .kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+        .kpi-value { font-size: 1.75rem; font-weight: 800; line-height: 1; }
+        .kpi-label { font-size: .74rem; color: #777; margin-top: 3px; }
+
+        .card-box {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .07);
+            overflow: hidden;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .card-box-header {
+            padding: 13px 18px;
+            border-bottom: 1px solid #eee;
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: .92rem;
+        }
+
+        .table-wrap { max-height: 400px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+        th {
+            background: #f8fafc;
+            color: #555;
+            font-weight: 600;
+            padding: 10px 14px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+        }
+        td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
+        tr:hover td { background: #f8f9fa; }
+
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; }
+        .btn-primary:hover { background: #154360; }
+    </style>
+</head>
+<body>
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+        <div class="brand"><i class="bi bi-person-circle"></i> BinBuddy Citizen</div>
+        <nav>
+            <a href="#" class="active" onclick="return nav('dashboard')"><i class="bi bi-grid-fill"></i> My Dashboard</a>
+            <a href="#" onclick="return nav('nearest')"><i class="bi bi-map-fill"></i> Nearest Bin</a>
+            <a href="#" onclick="return nav('complaints')"><i class="bi bi-chat-left-text"></i> My Complaints</a>
+            <a href="#" onclick="return nav('report')"><i class="bi bi-exclamation-circle"></i> Report Issue</a>
+        </nav>
+        <div class="sidebar-footer">Citizen v1.0<br>© 2026 BinBuddy</div>
+    </div>
+
+    <!-- MAIN -->
+    <div id="main">
+        <!-- TOPBAR -->
+        <div id="topbar">
+            <div class="page-title" id="page-title">My Dashboard</div>
+            <div style="display:flex;align-items:center;gap:16px">
+                <span id="clock" style="font-size:.81rem;color:#888"></span>
+                <div class="user-chip" onclick="logout()">
+                    <div class="avatar" id="u-avatar">C</div>
+                    <span id="u-name">Citizen</span>
+                    <i class="bi bi-box-arrow-right" style="color:#bbb;font-size:.9rem"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div class="page-section active" id="section-dashboard">
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background:#d6eaf8;color:#1a5276"><i class="bi bi-exclamation-lg"></i></div>
+                    <div>
+                        <div class="kpi-value" id="k-my-comp">0</div>
+                        <div class="kpi-label">My Complaints</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background:#d5f5e3;color:#1e8449"><i class="bi bi-check-circle"></i></div>
+                    <div>
+                        <div class="kpi-value" id="k-resolved">0</div>
+                        <div class="kpi-label">Resolved</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background:#fef9e7;color:#b7950b"><i class="bi bi-hourglass-split"></i></div>
+                    <div>
+                        <div class="kpi-value" id="k-pending">0</div>
+                        <div class="kpi-label">Pending</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background:#fef5e7;color:#d68910"><i class="bi bi-star-fill"></i></div>
+                    <div>
+                        <div class="kpi-value" id="k-points">0</div>
+                        <div class="kpi-label">My Points</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background:#ebdef0;color:#6c3483"><i class="bi bi-award"></i></div>
+                    <div>
+                        <div class="kpi-value" id="k-tier" style="font-size:1rem">BRONZE</div>
+                        <div class="kpi-label">Current Tier</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-box">
+                <h5><i class="bi bi-bell"></i> Alerts for You</h5>
+                <div id="alerts-area" style="margin-top:10px">
+                    <p style="color:#999">No active alerts for your area</p>
+                </div>
+            </div>
+
+            <div class="card-box">
+                <h5><i class="bi bi-calendar"></i> Collection Schedule</h5>
+                <p style="color:#666">Bins in your area are collected on <strong>Mondays, Wednesdays, Fridays</strong></p>
+                <p style="color:#666;margin-top:10px">Next collection: <strong id="next-coll">Tuesday (Tomorrow)</strong></p>
+            </div>
+        </div>
+
+        <!-- NEAREST BIN -->
+        <div class="page-section" id="section-nearest">
+            <div class="card-box">
+                <h5><i class="bi bi-geo-alt"></i> Find Nearest Bin</h5>
+                <button class="btn-primary" onclick="getNearestBin()" style="margin-top:10px"><i class="bi bi-search"></i> Find My Nearest Bin</button>
+                <div id="nearest-result" style="margin-top:20px"></div>
+            </div>
+        </div>
+
+        <!-- MY COMPLAINTS -->
+        <div class="page-section" id="section-complaints">
+            <div class="card-box">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <h5><i class="bi bi-chat-left-text"></i> My Complaints</h5>
+                    <button class="btn-primary" onclick="nav('report')"><i class="bi bi-plus"></i> New Complaint</button>
+                </div>
+                <div class="table-wrap" style="margin-top:10px">
+                    <table>
+                        <thead>
+                            <tr><th>#</th><th>Category</th><th>Description</th><th>Status</th><th>Date</th></tr>
+                        </thead>
+                        <tbody id="my-comp-tbody">
+                            <tr><td colspan="5" style="text-align:center;padding:20px">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- REPORT ISSUE -->
+        <div class="page-section" id="section-report">
+            <div class="card-box">
+                <h5><i class="bi bi-exclamation-circle"></i> Report an Issue</h5>
+                <form id="complaintForm" style="margin-top:15px">
+                    <div class="mb-3">
+                        <label>Name</label>
+                        <input type="text" id="comp-name" class="form-control" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label>Phone</label>
+                        <input type="text" id="comp-phone" class="form-control" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label>Category</label>
+                        <select class="form-control" id="comp-category" required>
+                            <option value="">Select Category</option>
+                            <option value="overflow">Bin Overflowing</option>
+                            <option value="damage">Bin Damaged</option>
+                            <option value="missing">Missing Part</option>
+                            <option value="smell">Bad Odor/Smell</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Priority</label>
+                        <select class="form-control" id="comp-priority" required>
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <textarea class="form-control" id="comp-desc" rows="4" placeholder="Describe the issue..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>Photo (optional)</label>
+                        <input type="file" id="comp-photo" accept="image/*" class="form-control" />
+                    </div>
+                    <button type="submit" class="btn-primary" onclick="submitComplaint(event)"><i class="bi bi-send"></i> Submit Complaint</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = '/api';
+        let TOKEN = localStorage.getItem('access_token');
+        let USER = JSON.parse(localStorage.getItem('user') || '{}');
+
+        function nav(name) {
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('#sidebar nav a').forEach(a => a.classList.remove('active'));
+            document.getElementById('section-' + name)?.classList.add('active');
+            document.querySelectorAll('#sidebar nav a').forEach(a => {
+                if (a.getAttribute('onclick')?.includes(`'${name}'`)) a.classList.add('active');
+            });
+            const titles = { dashboard: 'My Dashboard', nearest: 'Nearest Bin', complaints: 'My Complaints', report: 'Report Issue' };
+            document.getElementById('page-title').textContent = titles[name] || name;
+            if (name === 'complaints') loadComplaints();
+            return false;
+        }
+
+        function boot() {
+            document.getElementById('u-name').textContent = USER.name || 'Citizen';
+            document.getElementById('u-avatar').textContent = (USER.name || 'C')[0].toUpperCase();
+            // autofill complaint form name/phone
+            document.getElementById('comp-name').value = USER.name || '';
+            document.getElementById('comp-phone').value = USER.phone || '';
+            startClock();
+            loadDashboard();
+        }
+
+        function startClock() {
+            setInterval(() => {
+                document.getElementById('clock').textContent = new Date().toLocaleString('en-IN', { hour12: true });
+            }, 1000);
+        }
+
+        async function api(path) {
+            try {
+                const h = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` };
+                const r = await fetch(API_BASE + path, { headers: h });
+                if (r.status === 401) { logout(); return null; }
+                return await r.json();
+            } catch (e) { console.error(e); return null; }
+        }
+
+        async function loadDashboard() {
+            const [complaints, pointsData] = await Promise.all([
+                api('/complaints/'),
+                api('/points/user')
+            ]);
+            
+            if (complaints) {
+                const mine = complaints.filter(c => c.citizen_id == USER.id);
+                document.getElementById('k-my-comp').textContent = mine.length;
+                document.getElementById('k-resolved').textContent = mine.filter(c => c.status === 'resolved').length;
+                document.getElementById('k-pending').textContent = mine.filter(c => c.status !== 'resolved').length;
+            }
+            
+            if (pointsData) {
+                document.getElementById('k-points').textContent = pointsData.points || 0;
+                document.getElementById('k-tier').textContent = (pointsData.tier || 'bronze').toUpperCase();
+                document.getElementById('k-tier').style.color = getTierColor(pointsData.tier);
+            }
+        }
+
+        function getTierColor(tier) {
+            const colors = {
+                'bronze': '#a0522d',
+                'silver': '#c0c0c0',
+                'gold': '#ffd700',
+                'platinum': '#e5e4e2'
+            };
+            return colors[tier] || '#666';
+        }
+
+        async function loadComplaints() {
+            const complaints = await api('/complaints/');
+            if (!complaints) return;
+            const mine = complaints.filter(c => c.citizen_id == USER.id);
+            document.getElementById('my-comp-tbody').innerHTML = mine.length ? mine.map(c => `
+                <tr>
+                    <td>${c.id}</td>
+                    <td>${c.category}</td>
+                    <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${c.description}</td>
+                    <td><span class="badge bg-${c.status === 'resolved' ? 'success' : 'warning'}">${c.status}</span></td>
+                    <td>${new Date(c.created_at).toLocaleDateString('en-IN')}</td>
+                </tr>
+            `).join('') : '<tr><td colspan="5" style="text-align:center;padding:20px">No complaints yet</td></tr>';
+        }
+
+        async function getNearestBin() {
+            const bins = await api('/bins/');
+            if (!bins || bins.length === 0) {
+                document.getElementById('nearest-result').innerHTML = '<p style="color:#c0392b">No bins found</p>';
+                return;
+            }
+            const nearest = bins[0]; // In real app, calculate distance
+            document.getElementById('nearest-result').innerHTML = `
+                <div style="background:#f8f9fa;padding:16px;border-radius:8px">
+                    <h6>${nearest.bin_code}</h6>
+                    <p><strong>Location:</strong> ${nearest.location_name}</p>
+                    <p><strong>Fill Level:</strong> ${(parseFloat(nearest.fill_level || 0)).toFixed(1)}%</p>
+                    <p><strong>Status:</strong> <span class="badge bg-${nearest.fill_level >= 80 ? 'danger' : 'success'}">${nearest.status}</span></p>
+                </div>
+            `;
+        }
+
+        async function submitComplaint(e) {
+            e.preventDefault();
+            const category = document.getElementById('comp-category').value;
+            const priority = document.getElementById('comp-priority').value;
+            const description = document.getElementById('comp-desc').value;
+            const name = document.getElementById('comp-name').value;
+            const phone = document.getElementById('comp-phone').value;
+            const photoInput = document.getElementById('comp-photo');
+
+            const form = new FormData();
+            form.append('category', category);
+            form.append('priority', priority);
+            form.append('description', description);
+            form.append('citizen_id', USER.id);
+            form.append('name', name);
+            form.append('phone', phone);
+            if (photoInput && photoInput.files && photoInput.files[0]) {
+                form.append('photo', photoInput.files[0]);
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/complaints/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${TOKEN}` },
+                    body: form
+                });
+
+                if (res.ok) {
+                    alert('✅ Complaint submitted successfully!');
+                    document.getElementById('complaintForm').reset();
+                    // reload complaints in user history
+                    loadComplaints();
+                    // optionally notify workers by reloading their data when they poll
+                    nav('complaints');
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert('❌ Failed to submit complaint: ' + (err.error || res.statusText));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('❌ Network error while submitting complaint');
+            }
+        }
+
+        function logout() { localStorage.clear(); location.href = '/'; }
+
+        if (TOKEN && USER.role === 'citizen') boot();
+        else if (!TOKEN || USER.role !== 'citizen') { alert('Unauthorized'); location.href = '/'; }
+    </script>
+</body>
+</html>

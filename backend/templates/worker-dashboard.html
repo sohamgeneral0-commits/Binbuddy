@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BinBuddy - Worker Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root { --primary: #1a5276; --secondary: #f39c12; --sidebar-bg: #13445a; --sidebar-active: #1e6b8a; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; display: flex; min-height: 100vh; }
+
+        #sidebar {
+            width: 250px; background: var(--sidebar-bg); color: #fff; position: fixed; top: 0; left: 0; height: 100vh;
+            display: flex; flex-direction: column; z-index: 100; overflow-y: auto;
+        }
+        #sidebar .brand { padding: 20px; display: flex; align-items: center; gap: 10px; font-size: 1.2rem; font-weight: 700; }
+        #sidebar .brand i { font-size: 1.6rem; color: var(--secondary); }
+        #sidebar nav a {
+            display: flex; align-items: center; gap: 10px; padding: 12px 20px; color: rgba(255,255,255,.85);
+            text-decoration: none; transition: .2s;
+        }
+        #sidebar nav a:hover { background: rgba(255,255,255,.08); color: #fff; }
+        #sidebar nav a.active { background: var(--sidebar-active); color: #fff; border-left: 3px solid var(--secondary); }
+        #sidebar nav a i { width: 22px; text-align: center; }
+        #sidebar .sidebar-footer { padding: 15px 20px; font-size: .75rem; color: rgba(255,255,255,.4); margin-top: auto; }
+
+        #main { margin-left: 250px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+        #topbar {
+            background: var(--sidebar-bg); color: #fff; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,.15); position: sticky; top: 0; z-index: 99;
+        }
+        #topbar .live-status { display: flex; align-items: center; gap: 16px; font-size: .9rem; }
+        #topbar .live-dot { width: 8px; height: 8px; background: var(--secondary); border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:.5 } }
+        #topbar .bin-status { color: rgba(255,255,255,.9); }
+        #topbar .bin-status.full { color: #ff6b6b; }
+        #topbar .topbar-right { display: flex; align-items: center; gap: 20px; }
+        #topbar .avatar { width: 36px; height: 36px; background: var(--secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+        .page-section { display: none; padding: 24px; flex: 1; }
+        .page-section.active { display: block; }
+
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .kpi-card {
+            background: #fff; border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; gap: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        }
+        .kpi-icon { width: 50px; height: 50px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; }
+        .kpi-value { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+        .kpi-label { font-size: .8rem; color: #666; margin-top: 4px; }
+
+        .card-box { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); overflow: hidden; padding: 20px; margin-bottom: 20px; }
+        .card-box h5 { margin-bottom: 12px; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+
+        .live-feed-bin { width: 120px; height: 140px; margin: 0 auto 12px; background: #e8ecef; border-radius: 8px 8px 0 0; position: relative; overflow: hidden; }
+        .live-feed-fill { position: absolute; bottom: 0; left: 0; right: 0; background: var(--secondary); transition: height .3s; }
+        .live-feed-bin.full .live-feed-fill { background: #e74c3c; }
+        .live-feed-bin.half .live-feed-fill { background: #f39c12; }
+        .live-feed-bin .fill-pct { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-weight: 700; font-size: 1.2rem; z-index: 1; }
+
+        .status-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: .8rem; font-weight: 600; }
+        .status-tag.empty { background: #d5f5e3; color: #1e8449; }
+        .status-tag.half { background: #fef9e7; color: #b7950b; }
+        .status-tag.full { background: #fadbd8; color: #c0392b; }
+
+        .map-legend { position: absolute; top: 10px; right: 10px; background: #fff; padding: 8px 12px; border-radius: 8px; font-size: .8rem; z-index: 1000; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+        .map-legend span { display: inline-flex; align-items: center; gap: 6px; margin-right: 12px; }
+        .map-legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        .table-wrap { max-height: 420px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+        th { background: #f8fafc; color: #555; font-weight: 600; padding: 12px 14px; text-align: left; position: sticky; top: 0; }
+        td { padding: 12px 14px; border-bottom: 1px solid #eee; }
+        tr:hover td { background: #f8f9fa; }
+        .progress-thin { height: 6px; border-radius: 3px; background: #e8ecef; overflow: hidden; }
+        .progress-thin .bar { height: 100%; border-radius: 3px; }
+        .progress-thin .bar.full { background: #e74c3c; }
+        .progress-thin .bar.half { background: #f39c12; }
+        .progress-thin .bar.empty { background: #27ae60; }
+
+        .btn-refresh { background: var(--primary); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: .9rem; }
+        .btn-refresh:hover { background: #154360; color: #fff; }
+        .realtime-badge { font-size: .75rem; color: var(--secondary); font-weight: 600; }
+        .chart-container { height: 280px; position: relative; }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <div class="brand"><i class="bi bi-trash3-fill"></i> BinBuddy Worker</div>
+        <nav>
+            <a href="#" class="active" data-page="overview"><i class="bi bi-grid-1x2"></i> Overview</a>
+            <a href="#" data-page="live"><i class="bi bi-broadcast"></i> Live Monitor</a>
+            <a href="#" data-page="map"><i class="bi bi-geo-alt"></i> Map View</a>
+            <a href="#" data-page="bins"><i class="bi bi-trash"></i> All Bins</a>
+            <a href="#" data-page="complaints"><i class="bi bi-chat-left-text"></i> Complaints</a>
+            <a href="#" data-page="leaderboard"><i class="bi bi-trophy"></i> Leaderboard</a>
+            <a href="#" data-page="rewards"><i class="bi bi-gift"></i> Rewards</a>
+            <a href="#" data-page="history"><i class="bi bi-history"></i> History</a>
+        </nav>
+        <div class="sidebar-footer">BinBuddy v1.0<br>© 2024 Municipal Corporation</div>
+    </div>
+
+    <div id="main">
+        <div id="topbar">
+            <div class="live-status">
+                <span class="live-dot"></span>
+                <span>LIVE</span>
+                <span class="bin-status" id="header-bin-id">—</span>
+                <span id="header-fill">—</span>
+                <span id="header-dist">—</span>
+                <span class="bin-status" id="header-status">—</span>
+            </div>
+            <div class="topbar-right">
+                <span id="clock"></span>
+                <span id="clock-full"></span>
+                <div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="logout()">
+                    <div class="avatar" id="u-avatar">W</div>
+                    <span id="u-name">Worker</span>
+                    <i class="bi bi-chevron-down" style="font-size:.8rem"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- OVERVIEW -->
+        <div class="page-section active" id="section-overview">
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background:#d6eaf8;color:#1a5276"><i class="bi bi-trash"></i></div>
+                    <div><div class="kpi-value" id="k-total">0</div><div class="kpi-label">My Zone Bins</div></div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background:#fadbd8;color:#c0392b"><i class="bi bi-exclamation-triangle"></i></div>
+                    <div><div class="kpi-value" id="k-full">0</div><div class="kpi-label">Full Bins</div></div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background:#d5f5e3;color:#1e8449"><i class="bi bi-check-circle"></i></div>
+                    <div><div class="kpi-value" id="k-collected">0</div><div class="kpi-label">Collected Today</div></div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background:#fdedec;color:#c0392b"><i class="bi bi-megaphone"></i></div>
+                    <div><div class="kpi-value" id="k-complaints">0</div><div class="kpi-label">Open Complaints</div></div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background:#fef5e7;color:#d68910"><i class="bi bi-star-fill"></i></div>
+                    <div><div class="kpi-value" id="k-points">0</div><div class="kpi-label">My Points</div></div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background:#ebdef0;color:#6c3483"><i class="bi bi-award"></i></div>
+                    <div><div class="kpi-value" id="k-tier" style="font-size:1.2rem">BRONZE</div><div class="kpi-label">Current Tier</div></div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="card-box">
+                        <h5 style="color:var(--secondary)"><i class="bi bi-cpu"></i> HARDWARE LIVE FEED</h5>
+                        <div id="overview-live-feed"><p class="text-muted">Loading...</p></div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="card-box">
+                        <h5><i class="bi bi-map"></i> Bin Location Map <span class="realtime-badge ms-2">Auto-refresh 1.5s</span></h5>
+                        <div id="overview-map" style="height:320px;border-radius:8px"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIVE MONITOR -->
+        <div class="page-section" id="section-live">
+            <h4 class="mb-3"><i class="bi bi-broadcast text-danger"></i> Live Bin Monitor</h4>
+            <span class="realtime-badge">Updating every 1.5s</span>
+            <div class="row mt-4">
+                <div class="col-md-5">
+                    <div class="card-box">
+                        <h5 style="color:var(--secondary)">LIVE HARDWARE FEED</h5>
+                        <div id="live-feed-content"></div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="card-box">
+                        <h5>Fill Level History (last 20 readings)</h5>
+                        <div class="chart-container"><canvas id="fillHistoryChart"></canvas></div>
+                        <div class="row mt-3 g-3">
+                            <div class="col-6"><div class="card p-3"><div class="small text-muted">CURRENT FILL</div><div id="metric-fill" class="fw-bold fs-4">—</div><div class="progress-thin mt-1"><div class="bar empty" id="metric-fill-bar" style="width:0%"></div></div></div></div>
+                            <div class="col-6"><div class="card p-3"><div class="small text-muted">DISTANCE</div><div id="metric-dist" class="fw-bold fs-4">—</div><div class="small text-muted">cm from sensor</div></div></div>
+                            <div class="col-6"><div class="card p-3"><div class="small text-muted">PEAK TODAY</div><div id="metric-peak" class="fw-bold fs-4 text-danger">—</div><div class="small text-muted">max fill level</div></div></div>
+                            <div class="col-6"><div class="card p-3"><div class="small text-muted">READINGS</div><div id="metric-readings" class="fw-bold fs-4 text-success">0</div><div class="small text-muted">since page load</div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAP VIEW -->
+        <div class="page-section" id="section-map">
+            <h4 class="mb-2">Map View</h4>
+            <p class="text-muted mb-3"><i class="bi bi-geo-alt"></i> Live Bin Map (Your Zone)</p>
+            <div class="map-legend">
+                <span><span class="dot" style="background:#3498db;border:2px solid #fff;box-shadow:0 0 0 2px #3498db"></span>Your location</span>
+                <span><span class="dot" style="background:#27ae60"></span>Empty</span>
+                <span><span class="dot" style="background:#f39c12"></span>Half</span>
+                <span><span class="dot" style="background:#e74c3c"></span>Full</span>
+            </div>
+            <div class="card-box p-0" style="position:relative">
+                <div id="main-map" style="height:500px"></div>
+            </div>
+        </div>
+
+        <!-- ALL BINS -->
+        <div class="page-section" id="section-bins">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4><i class="bi bi-trash"></i> All Bins (My Zone)</h4>
+                <button class="btn-refresh" onclick="fetchAll()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+            </div>
+            <div class="card-box p-0">
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Bin Code</th><th>Location</th><th>Fill Level</th><th>Status</th><th>Battery</th><th>Last Update</th><th>Action</th></tr></thead>
+                        <tbody id="bins-tbody"><tr><td colspan="7" class="text-center py-4">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPLAINTS -->
+        <div class="page-section" id="section-complaints">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h4><i class="bi bi-megaphone"></i> Citizen Complaints</h4>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-danger" id="complaints-open-badge">0 Open</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="fetchComplaintsOnly()">Refresh</button>
+                    <label class="small text-muted mb-0">Sort by:</label>
+                    <select id="complaints-sort" class="form-select form-select-sm" style="width:auto" onchange="updateComplaintsTable()">
+                        <option value="date">Date (newest first)</option>
+                        <option value="date_old">Date (oldest first)</option>
+                        <option value="area">Area (A-Z)</option>
+                        <option value="area_desc">Area (Z-A)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-box p-0">
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>#</th><th>Category</th><th>Description</th><th>Area</th><th>Priority</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+                        <tbody id="complaints-tbody"><tr><td colspan="8" class="text-center py-4">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEADERBOARD -->
+        <div class="page-section" id="section-leaderboard">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4><i class="bi bi-trophy"></i> Top Earners Leaderboard</h4>
+                <div>
+                    <label class="small text-muted mb-0">Filter by:</label>
+                    <select id="leaderboard-role" class="form-select form-select-sm d-inline-block" style="width:auto" onchange="fetchLeaderboard()">
+                        <option value="">All Users</option>
+                        <option value="collector">Workers</option>
+                        <option value="citizen">Citizens</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-box p-0">
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>#</th><th>Name</th><th>Points</th><th>Tier</th><th>Role</th><th>Zone</th></tr></thead>
+                        <tbody id="leaderboard-tbody"><tr><td colspan="6" class="text-center py-4">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- REWARDS -->
+        <div class="page-section" id="section-rewards">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4><i class="bi bi-gift"></i> Available Rewards</h4>
+                <div style="text-align:right">
+                    <div class="alert alert-info mb-0" role="alert" style="display:inline-block;font-size:.9rem">
+                        <i class="bi bi-star-fill"></i> <strong id="reward-my-points">0</strong> Points Available
+                    </div>
+                </div>
+            </div>
+            <div class="row" id="rewards-list">
+                <div class="col-12"><p class="text-muted text-center py-4">Loading rewards...</p></div>
+            </div>
+        </div>
+
+        <!-- HISTORY (same as municipal: Fill chart + Collections + Analytics) -->
+        <div class="page-section" id="section-history">
+            <h4 class="mb-4">History & Analytics</h4>
+            <div class="row mb-4">
+                <div class="col-12">
+                        <div class="card-box">
+                            <h5><i class="bi bi-clock-history"></i> My Collection History (Resolved Complaints)</h5>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead><tr><th>Resolved Date</th><th>Complaint #</th><th>Bin Code</th><th>Location</th><th>Category</th></tr></thead>
+                                    <tbody id="collections-tbody"><tr><td colspan="5" class="text-center py-4">Loading...</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+            </div>
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="card-box">
+                        <h5><i class="bi bi-pie-chart"></i> Bin Status (My Zone)</h5>
+                        <div class="chart-container"><canvas id="binStatusChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="card-box">
+                        <h5><i class="bi bi-bar-chart"></i> Daily Collections</h5>
+                        <div class="chart-container"><canvas id="dailyCollectionsChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complete Complaint Modal (upload photo first) -->
+    <div id="completeComplaintModal" class="modal" tabindex="-1" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:1050;background:rgba(0,0,0,.5);align-items:center;justify-content:center">
+        <div class="modal-dialog modal-dialog-centered" style="margin:1rem">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Complete Complaint</h5>
+                    <button type="button" class="btn-close" onclick="closeCompleteModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Upload a photo of the resolved work to mark this complaint as complete.</p>
+                    <input type="hidden" id="complete-complaint-id">
+                    <label class="form-label">Photo (required)</label>
+                    <input type="file" id="complete-photo" class="form-control" accept="image/*,.pdf">
+                    <div id="complete-photo-error" class="text-danger small mt-1"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeCompleteModal()">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="submitCompleteWithPhoto()">Upload & Complete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        const API = '/api';
+        const POLL_MS = 1500;
+        let TOKEN = localStorage.getItem('access_token');
+        let USER = JSON.parse(localStorage.getItem('user') || '{}');
+        let bins = [];
+        let complaints = [];
+        let collections = [];
+        let selectedBinCode = null;
+        let fillHistory = [];
+        let readingsCount = 0;
+        let overviewMap, mainMap, overviewMarkers, mainMarkers, userLocationMarker, userLocationLayer;
+        let lastTrackedLat = null, lastTrackedLng = null;
+        let fillChart, statusChart, dailyChart;
+
+        function myZoneBins() {
+            if (!USER.zone_id) return bins;  // no zone = see all bins
+            return bins.filter(b => b.zone_id == USER.zone_id);
+        }
+
+        function getLiveBin() {
+            const zoneBins = myZoneBins();
+            if (!zoneBins.length) return bins[0] || null;
+            return zoneBins.slice().sort((a, b) => {
+                const ta = a.last_updated ? new Date(a.last_updated).getTime() : 0;
+                const tb = b.last_updated ? new Date(b.last_updated).getTime() : 0;
+                return tb - ta;
+            })[0];
+        }
+
+        function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` }; }
+        function hasValidCoords(lat, lng) {
+            const lt = Number(lat), lg = Number(lng);
+            return Number.isFinite(lt) && Number.isFinite(lg) && !(lt === 0 && lg === 0);
+        }
+
+        async function api(path) {
+            try {
+                const r = await fetch(API + path, { headers: authHeaders() });
+                if (r.status === 401) { logout(); return null; }
+                return await r.json();
+            } catch (e) { console.error(e); return null; }
+        }
+
+        function nav(page) {
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('#sidebar nav a').forEach(a => a.classList.remove('active'));
+            document.getElementById('section-' + page)?.classList.add('active');
+            document.querySelector(`#sidebar nav a[data-page="${page}"]`)?.classList.add('active');
+            if (page === 'map') setTimeout(() => { if (!mainMap) initMainMap(); else { mainMap.invalidateSize(); updateMainMapMarkers(); } }, 50);
+            if (page === 'live' && (selectedBinCode || bins.length)) updateLiveFeed();
+            if (page === 'history') loadHistory();
+            if (page === 'complaints') fetchComplaintsOnly();
+            if (page === 'leaderboard') fetchLeaderboard();
+            if (page === 'rewards') fetchRewards();
+            return false;
+        }
+
+        document.querySelectorAll('#sidebar nav a').forEach(a => {
+            a.addEventListener('click', e => { e.preventDefault(); nav(a.dataset.page); });
+        });
+
+        function startClock() {
+            const upd = () => {
+                const d = new Date();
+                document.getElementById('clock').textContent = d.toLocaleTimeString('en-IN', { hour12: true });
+                document.getElementById('clock-full').textContent = d.toLocaleDateString('en-IN') + ', ' + d.toLocaleTimeString('en-IN', { hour12: true });
+            };
+            upd();
+            setInterval(upd, 1000);
+        }
+
+        function getZoneLabel(zid) {
+            if (!zid) return '';
+            const zones = { 1: 'Ward 1', 2: 'Ward 2', 3: 'Ward 3', 4: 'Ward 4', 5: 'Ward 5' };
+            return zones[zid] || 'Ward ' + zid;
+        }
+
+        async function fetchAll() {
+            let b, c, s, cd, coll, p;
+            try {
+                [b, c, s, cd, coll, p] = await Promise.all([
+                    api('/bins/'), api('/complaints/'), api('/reports/summary'), api('/reports/collections-daily'),
+                    api('/collections/'), api('/points/user')
+                ]);
+            } catch (e) { console.error('fetchAll error', e); }
+            if (b && Array.isArray(b)) bins = b.slice().sort((a, z) => {
+                const ta = a.last_updated ? new Date(a.last_updated).getTime() : 0;
+                const tz = z.last_updated ? new Date(z.last_updated).getTime() : 0;
+                return tz - ta;
+            });
+            if (c && Array.isArray(c)) complaints = c;
+            if (coll && Array.isArray(coll)) collections = coll.filter(x => x.collector_id == USER.id);
+            if (p) {
+                document.getElementById('k-points').textContent = p.points || 0;
+                document.getElementById('k-tier').textContent = (p.tier || 'bronze').toUpperCase();
+                document.getElementById('k-tier').style.color = getTierColor(p.tier);
+            }
+            updateKPIs(s);
+            updateOverviewLiveFeed();
+            updateOverviewMap();
+            updateBinsTable();
+            updateComplaintsTable();
+            updateHeaderBin();
+            if (dailyChart && cd && Array.isArray(cd)) updateDailyChart(cd);
+        }
+
+        function getTierColor(tier) {
+            const colors = {
+                'bronze': '#a0522d',
+                'silver': '#c0c0c0',
+                'gold': '#ffd700',
+                'platinum': '#e5e4e2'
+            };
+            return colors[tier] || '#666';
+        }
+
+        async function fetchLeaderboard() {
+            try {
+                const role = document.getElementById('leaderboard-role').value;
+                const url = '/api/points/leaderboard' + (role ? `?role=${role}` : '');
+                const data = await api(url);
+                const tbody = document.getElementById('leaderboard-tbody');
+                if (!data || !Array.isArray(data)) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No data available</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.map(u => `
+                    <tr>
+                        <td><strong>${u.rank}</strong></td>
+                        <td>${u.name}</td>
+                        <td><span class="badge bg-warning">${u.points}</span></td>
+                        <td style="color:${getTierColor(u.tier)};font-weight:600">${u.tier.toUpperCase()}</td>
+                        <td><span class="badge bg-secondary">${u.role}</span></td>
+                        <td>${u.zone || '—'}</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Leaderboard fetch error:', e);
+                document.getElementById('leaderboard-tbody').innerHTML = '<tr><td colspan="6" class="text-danger text-center">Error loading leaderboard</td></tr>';
+            }
+        }
+
+        async function fetchRewards() {
+            try {
+                const userData = await api('/points/user');
+                if (userData) {
+                    document.getElementById('reward-my-points').textContent = userData.points || 0;
+                }
+                
+                const rewards = await api('/points/rewards');
+                const container = document.getElementById('rewards-list');
+                if (!rewards || !Array.isArray(rewards) || rewards.length === 0) {
+                    container.innerHTML = '<div class="col-12"><p class="text-muted text-center py-4">No rewards available</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = rewards.map(r => {
+                    const canRedeem = userData && userData.points >= r.points_required;
+                    const btnClass = canRedeem ? 'btn-success' : 'btn-secondary disabled';
+                    return `
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">${r.name}</h5>
+                                    <p class="card-text small text-muted">${r.description || ''}</p>
+                                    <div class="mb-2">
+                                        <span class="badge bg-info">${r.reward_type.toUpperCase()}</span>
+                                        <span class="badge bg-warning">${r.points_required} pts</span>
+                                    </div>
+                                    <small class="d-block text-muted mb-2">Value: ${r.value || '—'}</small>
+                                    <button class="btn btn-sm w-100 ${btnClass}" onclick="redeemReward(${r.id})" ${canRedeem ? '' : 'disabled'}>
+                                        ${canRedeem ? 'Redeem Now' : 'Not Enough Points'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error('Rewards fetch error:', e);
+                document.getElementById('rewards-list').innerHTML = '<div class="col-12"><p class="text-danger text-center">Error loading rewards</p></div>';
+            }
+        }
+
+        async function redeemReward(rewardId) {
+            if (!confirm('Redeem this reward? This will deduct the required points from your account.')) return;
+            try {
+                const result = await api(`/points/redeem/${rewardId}`, { method: 'POST' });
+                if (result) {
+                    alert(`✅ Reward redeemed!\n\nReward: ${result.reward}\nClaim Code: ${result.claim_code}\nRemaining Points: ${result.remaining_points}`);
+                    fetchRewards();
+                    fetchAll();
+                }
+            } catch (e) {
+                console.error('Redemption error:', e);
+                alert('❌ Error redeeming reward. Please try again.');
+            }
+        }
+
+        function updateKPIs(s) {
+            const zoneBins = myZoneBins();
+            const today = new Date().toDateString();
+            const myCollectedToday = collections.filter(c => {
+                const d = c.collected_at ? new Date(c.collected_at) : null;
+                return d && d.toDateString() === today;
+            }).length;
+            document.getElementById('k-total').textContent = zoneBins.length;
+            document.getElementById('k-full').textContent = zoneBins.filter(b => b.status === 'full').length;
+            document.getElementById('k-collected').textContent = myCollectedToday;
+            document.getElementById('k-complaints').textContent = (Array.isArray(complaints) ? complaints : []).filter(c => c.status !== 'resolved' && c.status !== 'closed').length;
+        }
+
+        function updateHeaderBin() {
+            const b = selectedBinCode ? bins.find(x => x.bin_code === selectedBinCode) : getLiveBin();
+            if (!b) {
+                document.getElementById('header-bin-id').textContent = '—';
+                document.getElementById('header-fill').textContent = document.getElementById('header-dist').textContent = '';
+                document.getElementById('header-status').textContent = '—';
+                return;
+            }
+            document.getElementById('header-bin-id').textContent = b.bin_code;
+            document.getElementById('header-fill').textContent = 'Fill:' + (b.fill_level ?? 0).toFixed(1) + '%';
+            document.getElementById('header-dist').textContent = 'Dist:' + (b.distance_cm ?? 0).toFixed(1) + ' cm';
+            const st = (b.status || 'empty').toUpperCase();
+            document.getElementById('header-status').textContent = 'Status:' + st;
+            document.getElementById('header-status').className = 'bin-status ' + (b.status === 'full' ? 'full' : '');
+        }
+
+        function updateOverviewLiveFeed() {
+            const b = selectedBinCode ? bins.find(x => x.bin_code === selectedBinCode) : getLiveBin();
+            const el = document.getElementById('overview-live-feed');
+            if (!b) { el.innerHTML = '<p class="text-muted">No bins in your zone</p>'; return; }
+            const fill = parseFloat(b.fill_level || 0);
+            const status = (b.status || 'empty');
+            el.innerHTML = `
+                <div><strong>${b.bin_code}</strong></div>
+                <div class="small text-muted mb-2">${b.location_name || '—'} ${b.zone_id ? ', ' + getZoneLabel(b.zone_id) : ''}</div>
+                <div class="live-feed-bin ${status}">
+                    <div class="live-feed-fill" style="height:${fill}%"></div>
+                    <span class="fill-pct">${fill.toFixed(1)}%</span>
+                </div>
+                <div class="fw-bold fs-4 mb-1" style="color:var(--secondary)">${fill.toFixed(1)}%</div>
+                <div class="small text-muted">Distance: ${(b.distance_cm ?? 0).toFixed(1)} cm</div>
+                <span class="status-tag ${status} mt-2 d-inline-block">${status.toUpperCase()}</span>
+                <div class="small text-muted mt-2">Last update: ${b.last_updated ? new Date(b.last_updated).toLocaleTimeString() : '—'}</div>
+                <span class="badge bg-success me-1">LIVE</span>
+                <a href="#" onclick="nav('live'); selectedBinCode='${b.bin_code}'; return false" class="small text-primary">Click to open full monitor →</a>
+            `;
+        }
+
+        function updateOverviewMap() {
+            // called whenever fetchAll updates bin data; ensure map exists and markers refreshed
+            if (!overviewMap) {
+                initOverviewMap();
+            } else {
+                updateOverviewMapMarkers();
+            }
+        }
+
+        function initOverviewMap() {
+            if (overviewMap) { overviewMap.remove(); overviewMap = null; }
+            // Center overview map on the current bin (or fallback to Nashik)
+            const currentBin = selectedBinCode ? bins.find(x => x.bin_code === selectedBinCode) : getLiveBin();
+            const mapCenter = (currentBin && hasValidCoords(currentBin.latitude, currentBin.longitude))
+                ? [parseFloat(currentBin.latitude), parseFloat(currentBin.longitude)]
+                : [20.0, 73.78];
+            overviewMap = L.map('overview-map').setView(mapCenter, 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(overviewMap);
+            overviewMarkers = L.layerGroup().addTo(overviewMap);
+            updateOverviewMapMarkers();
+        }
+
+        function updateOverviewMapMarkers() {
+            if (!overviewMarkers) return;
+            overviewMarkers.clearLayers();
+            myZoneBins().filter(b => b.latitude && b.longitude).forEach(b => {
+                const col = b.status === 'full' ? '#e74c3c' : b.status === 'half' ? '#f39c12' : '#27ae60';
+                L.circleMarker([b.latitude, b.longitude], { radius: 10, fillColor: col, color: '#333', weight: 1, fillOpacity: 0.9 })
+                    .addTo(overviewMarkers).bindPopup(`${b.bin_code}<br>${b.location_name || ''}<br>${(b.fill_level||0).toFixed(1)}%`);
+            });
+            // Center the overview map on the current tracked bin if available
+            if (overviewMap) {
+                const currentBin = selectedBinCode ? bins.find(x => x.bin_code === selectedBinCode) : getLiveBin();
+                if (currentBin && hasValidCoords(currentBin.latitude, currentBin.longitude)) {
+                    const lat = parseFloat(currentBin.latitude);
+                    const lng = parseFloat(currentBin.longitude);
+                    overviewMap.setView([lat, lng], 13);
+                }
+            }
+        }
+
+        function updateBinsTable() {
+            const tbody = document.getElementById('bins-tbody');
+            const zoneBins = myZoneBins();
+            if (!zoneBins.length) { tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">No bins in your zone</td></tr>'; return; }
+            tbody.innerHTML = zoneBins.map(b => {
+                const fill = parseFloat(b.fill_level || 0);
+                const status = b.status || 'empty';
+                const pbar = fill >= 90 ? 'full' : fill >= 50 ? 'half' : 'empty';
+                const liveBin = getLiveBin();
+                const isLive = liveBin && b.bin_code === liveBin.bin_code;
+                return `<tr>
+                    <td><strong>${b.bin_code}</strong> ${isLive ? '<span class="badge bg-success ms-1">LIVE</span>' : ''}</td>
+                    <td>${b.location_name || '—'}</td>
+                    <td><div class="progress-thin" style="width:100px"><div class="bar ${pbar}" style="width:${fill}%"></div></div> ${fill.toFixed(1)}%</td>
+                    <td><span class="status-tag ${status}">${(status||'empty').toUpperCase()}</span></td>
+                    <td class="text-success">${(b.battery_level ?? 100).toFixed(0)}%</td>
+                    <td>${b.last_updated ? new Date(b.last_updated).toLocaleString() : '—'}</td>
+                    <td>${b.status !== 'collected' ? `<button class="btn btn-sm btn-success" onclick="markCollected(${b.id})">Mark Collected</button>` : '<span class="badge bg-secondary">Done</span>'}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function markCollected(binId) {
+            const r = await fetch(API + '/collections/', {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({ bin_id: binId })
+            });
+            if (r.ok) { fetchAll(); }
+        }
+
+        async function fetchComplaintsOnly() {
+            const c = await api('/complaints/');
+            if (c && Array.isArray(c)) { complaints = c; updateComplaintsTable(); }
+            else if (c && c.error) document.getElementById('complaints-tbody').innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">' + (c.error || 'Failed to load') + '</td></tr>';
+            else document.getElementById('complaints-tbody').innerHTML = '<tr><td colspan="8" class="text-center py-4">No complaints</td></tr>';
+        }
+
+        function updateComplaintsTable() {
+            const tbody = document.getElementById('complaints-tbody');
+            const list = Array.isArray(complaints) ? complaints : [];
+            const openCount = list.filter(c => c.status !== 'resolved' && c.status !== 'closed').length;
+            document.getElementById('complaints-open-badge').textContent = openCount + ' Open';
+            if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4">No complaints</td></tr>'; return; }
+            const sortBy = (document.getElementById('complaints-sort') || {}).value || 'date';
+            let sorted = list.slice();
+            if (sortBy === 'date') sorted.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+            else if (sortBy === 'date_old') sorted.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+            else if (sortBy === 'area') sorted.sort((a,b) => (a.area||'').localeCompare(b.area||''));
+            else if (sortBy === 'area_desc') sorted.sort((a,b) => (b.area||'').localeCompare(a.area||''));
+            tbody.innerHTML = sorted.map(c => {
+                const date = c.created_at ? new Date(c.created_at).toLocaleDateString() : '—';
+                const status = (c.status || 'open').toUpperCase().replace('_',' ');
+                const overdue = c.is_overdue;
+                const canComplete = c.status !== 'resolved' && c.status !== 'closed';
+                const rowStyle = overdue ? 'font-weight:bold;background:#fff3cd' : '';
+                return `<tr style="${rowStyle}">
+                    <td>${c.id}</td>
+                    <td>${c.category || 'other'}</td>
+                    <td>${c.description || '—'} ${c.bin_location ? '('+c.bin_location+')' : ''} ${overdue ? '<span class="badge bg-danger ms-1">OVERDUE</span>' : ''}</td>
+                    <td>${c.area || '—'}</td>
+                    <td><span class="badge bg-${c.priority==='high'?'danger':c.priority==='medium'?'warning':'info'}">${c.priority||'medium'}</span></td>
+                    <td><span class="badge bg-${c.status==='resolved'?'success':c.status==='in_progress'?'warning':'secondary'}">${status}</span></td>
+                    <td>${date}</td>
+                    <td>${canComplete ? `<button class="btn btn-sm btn-success" onclick="openCompleteModal(${c.id})">Complete</button>` : '—'}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function openCompleteModal(id) {
+            document.getElementById('complete-complaint-id').value = id;
+            document.getElementById('complete-photo').value = '';
+            document.getElementById('complete-photo-error').textContent = '';
+            document.getElementById('completeComplaintModal').style.display = 'flex';
+        }
+        function closeCompleteModal() {
+            document.getElementById('completeComplaintModal').style.display = 'none';
+        }
+        async function submitCompleteWithPhoto() {
+            const id = document.getElementById('complete-complaint-id').value;
+            const fileInput = document.getElementById('complete-photo');
+            const errEl = document.getElementById('complete-photo-error');
+            if (!fileInput.files || !fileInput.files[0]) {
+                errEl.textContent = 'Please upload a photo first to mark as complete.';
+                return;
+            }
+            errEl.textContent = '';
+            const form = new FormData();
+            form.append('status', 'resolved');
+            form.append('photo', fileInput.files[0]);
+            const r = await fetch(API + '/complaints/' + id, {
+                method: 'PUT',
+                headers: { 'Authorization': 'Bearer ' + TOKEN },
+                body: form
+            });
+            const data = await r.json().catch(() => ({}));
+            if (!r.ok) {
+                errEl.textContent = data.error || 'Failed to complete';
+                return;
+            }
+            closeCompleteModal();
+            fetchAll();
+        }
+
+        function selectBin(code) { selectedBinCode = code; updateHeaderBin(); }
+
+        function updateLiveFeed() {
+            const b = selectedBinCode ? bins.find(x => x.bin_code === selectedBinCode) : getLiveBin();
+            const el = document.getElementById('live-feed-content');
+            if (!b) { el.innerHTML = '<p class="text-muted">Select a bin from Overview or All Bins</p>'; return; }
+            if (!selectedBinCode) selectedBinCode = b.bin_code;
+            const fill = parseFloat(b.fill_level || 0);
+            fillHistory.push({ t: new Date().toLocaleTimeString(), v: fill });
+            if (fillHistory.length > 20) fillHistory.shift();
+            readingsCount++;
+            const status = b.status || 'empty';
+            el.innerHTML = `
+                <div><strong>${b.bin_code}</strong></div>
+                <div class="small text-muted mb-2">${b.location_name || '—'}, ${getZoneLabel(b.zone_id)}</div>
+                <div class="mb-2"><span class="badge bg-success">Battery ${(b.battery_level ?? 100).toFixed(0)}%</span></div>
+                <div class="live-feed-bin ${status}" style="width:140px;height:160px">
+                    <div class="live-feed-fill" style="height:${fill}%"></div>
+                    <span class="fill-pct">${fill.toFixed(1)}%</span>
+                </div>
+                <div class="fw-bold fs-3 mb-1" style="color:${status==='full'?'#e74c3c':'var(--secondary)'}">${fill.toFixed(1)}%</div>
+                <div class="text-muted">Distance: ${(b.distance_cm ?? 0).toFixed(1)} cm</div>
+                <span class="status-tag ${status} mt-2 d-inline-block">${status.toUpperCase()}</span>
+            `;
+            document.getElementById('metric-fill').textContent = fill.toFixed(1) + '%';
+            document.getElementById('metric-fill-bar').style.width = fill + '%';
+            document.getElementById('metric-fill-bar').className = 'bar ' + (fill >= 90 ? 'full' : fill >= 50 ? 'half' : 'empty');
+            document.getElementById('metric-dist').textContent = (b.distance_cm ?? 0).toFixed(1) + ' cm';
+            const peak = fillHistory.length ? Math.max(...fillHistory.map(x => x.v)) : fill;
+            document.getElementById('metric-peak').textContent = peak.toFixed(1) + '%';
+            document.getElementById('metric-readings').textContent = readingsCount;
+            if (fillChart) {
+                fillChart.data.labels = fillHistory.map(x => x.t);
+                fillChart.data.datasets[0].data = fillHistory.map(x => x.v);
+                fillChart.update('none');
+            }
+        }
+
+        function loadHistory() {
+            // Show resolved complaints assigned to this worker as their "collection history"
+            const zoneBins = myZoneBins();
+            const empty = zoneBins.filter(b => b.status === 'empty' || b.status === 'collected').length;
+            const half = zoneBins.filter(b => b.status === 'half').length;
+            const full = zoneBins.filter(b => b.status === 'full').length;
+            if (statusChart) {
+                statusChart.data.datasets[0].data = [empty, half, full];
+                statusChart.update('none');
+            }
+            const myResolved = (Array.isArray(complaints) ? complaints : []).filter(c => c.assigned_to == USER.id && (c.status === 'resolved' || c.status === 'completed'));
+            document.getElementById('collections-tbody').innerHTML = myResolved.length ? myResolved.slice(0, 50).map(c => {
+                const bin = bins.find(b => b.id === c.bin_id);
+                const dt = c.resolved_at ? new Date(c.resolved_at) : null;
+                return `<tr>
+                    <td>${dt ? dt.toLocaleDateString() : (c.created_at ? new Date(c.created_at).toLocaleDateString() : '—')}</td>
+                    <td>#${c.id}</td>
+                    <td>${bin ? bin.bin_code : '—'}</td>
+                    <td>${bin ? (bin.location_name || '—') : (c.bin_location || '—')}</td>
+                    <td>${c.category || '—'}</td>
+                </tr>`;
+            }).join('') : '<tr><td colspan="5" class="text-center py-4">No resolved complaints yet</td></tr>';
+            api('/reports/collections-daily').then(cd => { if (cd && dailyChart) updateDailyChart(cd); });
+        }
+
+        function initCharts() {
+            fillChart = new Chart(document.getElementById('fillHistoryChart'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Fill %', data: [], borderColor: '#1a5276', tension: 0.3, fill: false }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
+            });
+            statusChart = new Chart(document.getElementById('binStatusChart'), {
+                type: 'doughnut',
+                data: { labels: ['Empty', 'Half', 'Full'], datasets: [{ data: [0, 0, 0], backgroundColor: ['#27ae60', '#f39c12', '#e74c3c'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+            dailyChart = new Chart(document.getElementById('dailyCollectionsChart'), {
+                type: 'bar',
+                data: { labels: [], datasets: [{ label: 'Collections', data: [], backgroundColor: '#f39c12' }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function updateDailyChart(cd) {
+            if (!dailyChart || !cd.length) return;
+            dailyChart.data.labels = cd.map(d => d.date ? d.date.slice(5) : '');
+            dailyChart.data.datasets[0].data = cd.map(d => d.count || 0);
+            dailyChart.update('none');
+        }
+
+        function initMainMap() {
+            if (mainMap) { mainMap.remove(); mainMap = null; }
+            // Center main map on the current bin (fallback to Nashik)
+            const currentBin = selectedBinCode ? bins.find(x => x.bin_code === selectedBinCode) : getLiveBin();
+            const mapCenter = (currentBin && hasValidCoords(currentBin.latitude, currentBin.longitude))
+                ? [parseFloat(currentBin.latitude), parseFloat(currentBin.longitude)]
+                : [20.0, 73.78];
+            mainMap = L.map('main-map').setView(mapCenter, 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'Leaflet | © OpenStreetMap' }).addTo(mainMap);
+            mainMarkers = L.layerGroup().addTo(mainMap);
+            userLocationLayer = L.layerGroup().addTo(mainMap);
+            updateMainMapMarkers();
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        if (userLocationMarker) userLocationLayer.removeLayer(userLocationMarker);
+                        userLocationMarker = L.circleMarker([lat, lng], {
+                            radius: 14, fillColor: '#3498db', color: '#fff', weight: 3, fillOpacity: 0.9
+                        }).addTo(userLocationLayer).bindPopup('Your location');
+                        mainMap.setView([lat, lng], Math.max(mainMap.getZoom(), 14));
+                        navigator.geolocation.watchPosition(
+                            function(p) {
+                                const lat2 = p.coords.latitude;
+                                const lng2 = p.coords.longitude;
+                                if (userLocationMarker) userLocationMarker.setLatLng([lat2, lng2]);
+                            },
+                            function() {},
+                            { enableHighAccuracy: true, maximumAge: 10000 }
+                        );
+                    },
+                    function() { console.log('Location permission denied or unavailable'); }
+                );
+            }
+        }
+
+        function updateMainMapMarkers() {
+            if (!mainMarkers) return;
+            mainMarkers.clearLayers();
+            myZoneBins().filter(b => b.latitude && b.longitude).forEach(b => {
+                const col = b.status === 'full' ? '#e74c3c' : b.status === 'half' ? '#f39c12' : '#27ae60';
+                L.circleMarker([b.latitude, b.longitude], { radius: 12, fillColor: col, color: '#333', weight: 2, fillOpacity: 0.9 })
+                    .addTo(mainMarkers).bindPopup(`${b.bin_code}<br>${b.location_name || ''}<br>Fill: ${(b.fill_level||0).toFixed(1)}%<br>${(b.status||'empty').toUpperCase()}`);
+            });
+            const tracked = selectedBinCode ? bins.find(x => x.bin_code === selectedBinCode) : getLiveBin();
+            if (tracked && hasValidCoords(tracked.latitude, tracked.longitude)) {
+                const lat = parseFloat(tracked.latitude);
+                const lng = parseFloat(tracked.longitude);
+                const movedMeters = (lastTrackedLat != null && lastTrackedLng != null)
+                    ? mainMap.distance([lastTrackedLat, lastTrackedLng], [lat, lng])
+                    : Infinity;
+                if (movedMeters > 5) mainMap.panTo([lat, lng], { animate: true, duration: 0.6 });
+                lastTrackedLat = lat;
+                lastTrackedLng = lng;
+            }
+        }
+
+        function boot() {
+            document.getElementById('u-name').textContent = USER.name || 'Worker';
+            document.getElementById('u-avatar').textContent = (USER.name || 'W')[0].toUpperCase();
+            startClock();
+            initCharts();
+            fetchAll();
+            setInterval(fetchAll, POLL_MS);
+            setInterval(() => {
+                if (document.getElementById('section-live').classList.contains('active') && bins.length) updateLiveFeed();
+            }, POLL_MS);
+        }
+
+        nav('overview');
+        setInterval(() => {
+            if (document.getElementById('section-map').classList.contains('active')) {
+                if (!mainMap) initMainMap();
+                else updateMainMapMarkers();
+            }
+        }, POLL_MS);
+
+        function logout() { localStorage.clear(); location.href = '/'; }
+
+        if (TOKEN && (USER.role === 'collector' || USER.role === 'worker')) {
+            boot();
+            setTimeout(() => initOverviewMap(), 100);
+        } else {
+            alert('Unauthorized'); location.href = '/';
+        }
+    </script>
+</body>
+</html>

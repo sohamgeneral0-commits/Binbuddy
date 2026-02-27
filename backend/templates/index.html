@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BinBuddy - Login & Register</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            
+        }
+        .container-main { width: 100%; max-width: 900px; padding: 20px; margin: 0 auto; }
+        .card-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            align-items: center;
+            justify-content: center;
+        }
+        .auth-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        .auth-card:hover { transform: translateY(-5px); }
+        .brand {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.8rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .form-label { color: #333; font-weight: 600; margin-bottom: 0.5rem; }
+        .form-control, .form-select {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+        }
+        .btn-primary, .btn-success {
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .toggle-section {
+            text-align: center;
+            margin-top: 1.5rem;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 1.5rem;
+        }
+        .toggle-link {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .toggle-link:hover { color: #764ba2; text-decoration: underline; }
+        .hidden-section { display: none; }
+        .error-msg {
+            color: #dc3545;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .success-msg {
+            color: #155724;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .conditionalField { display: none; }
+        .conditionalField.show { display: block; }
+        .divider { color: #999; text-align: center; margin: 2rem 0; }
+        .field-group { margin-bottom: 1.5rem; }
+        @media (max-width: 768px) {
+            .card-wrapper {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-main">
+    <div class="card-wrapper">
+        <!-- LOGIN SECTION -->
+        <div class="auth-card">
+            <div class="brand">🔐 Login</div>
+            <form id="loginForm">
+                <!-- Role Selection -->
+                <div class="field-group">
+                    <label class="form-label">Select Your Role</label>
+                    <select id="loginRole" class="form-select" required>
+                        <option value="">-- Choose Role --</option>
+                        <option value="admin">Admin</option>
+                        <option value="citizen">Citizen</option>
+                        <option value="worker">Worker</option>
+                        <option value="municipal_office">Municipal Corporation</option>
+                    </select>
+                </div>
+
+                <!-- ID/Username -->
+                <div class="field-group">
+                    <label class="form-label">ID / Username</label>
+                    <input type="text" id="loginId" class="form-control" required placeholder="Enter your ID">
+                </div>
+
+                <!-- Password -->
+                <div class="field-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="loginPassword" class="form-control" required placeholder="Enter password">
+                </div>
+
+                <!-- Error Message -->
+                <div id="loginErrorMsg" class="error-msg" style="display: none;"></div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-success w-100 mb-3">Login</button>
+
+                <!-- Toggle to Register -->
+                <div class="toggle-section">
+                    <p>Don't have an account? <span class="toggle-link" onclick="toggleForms()">Register here</span></p>
+                </div>
+            </form>
+        </div>
+
+        <!-- REGISTRATION SECTION -->
+        <div class="auth-card hidden-section" id="registerSection">
+            <div class="brand">✍️ Register</div>
+            <form id="registerForm">
+                <!-- Role Selection -->
+                <div class="field-group">
+                    <label class="form-label">Select Your Role</label>
+                    <select id="registerRole" class="form-select" required onchange="updateRegisterFields()">
+                        <option value="">-- Choose Role --</option>
+                        <option value="citizen">Citizen</option>
+                        <option value="admin">Admin</option>
+                        <option value="municipal_office">Municipal Corporation</option>
+                        <option value="worker">Worker</option>
+                    </select>
+                </div>
+
+                <!-- CITIZEN FIELDS -->
+                <div id="citizenFields" class="conditionalField">
+                    <div class="field-group">
+                        <label class="form-label">Name</label>
+                        <input type="text" id="citizenName" class="form-control" placeholder="Enter your name">
+                    </div>
+                    <div class="field-group">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" id="citizenPhone" class="form-control" placeholder="Enter phone number">
+                    </div>
+                    <div class="field-group">
+                        <label class="form-label">Area</label>
+                        <input type="text" id="citizenArea" class="form-control" placeholder="Enter your area">
+                    </div>
+                    <div class="field-group">
+                        <label class="form-label">Municipal Corporation</label>
+                        <input type="text" id="citizenMunicipal" class="form-control" placeholder="Enter municipal corporation">
+                    </div>
+                    <div class="field-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="citizenPassword" class="form-control" placeholder="Enter password">
+                    </div>
+                </div>
+
+                <!-- ADMIN FIELDS -->
+                <div id="adminFields" class="conditionalField">
+                    <div class="field-group">
+                        <label class="form-label">Admin ID</label>
+                        <input type="text" id="adminId" class="form-control" placeholder="Enter admin ID (predefined)">
+                    </div>
+                    <div class="field-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="adminPassword" class="form-control" placeholder="Enter password">
+                    </div>
+                    <small class="text-muted">Note: Admin ID and Password are predefined in the database</small>
+                </div>
+
+                <!-- MUNICIPAL CORPORATION FIELDS -->
+                <div id="municipalFields" class="conditionalField">
+                    <div class="field-group">
+                        <label class="form-label">City Name</label>
+                        <input type="text" id="municipalCity" class="form-control" placeholder="Enter city name">
+                    </div>
+                    <div class="field-group">
+                        <label class="form-label">Municipal Officer ID</label>
+                        <input type="text" id="municipalOfficerId" class="form-control" placeholder="Enter officer ID">
+                    </div>
+                    <div class="field-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="municipalPassword" class="form-control" placeholder="Enter password">
+                    </div>
+                </div>
+
+                <!-- WORKER FIELDS -->
+                <div id="workerFields" class="conditionalField">
+                    <div class="field-group">
+                        <label class="form-label">Area</label>
+                        <select id="workerArea" class="form-select">
+                            <option value="">-- Select Area --</option>
+                            <option value="area1">Area 1</option>
+                            <option value="area2">Area 2</option>
+                            <option value="area3">Area 3</option>
+                            <option value="area4">Area 4</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label class="form-label">Worker Name</label>
+                        <input type="text" id="workerName" class="form-control" placeholder="Enter worker name">
+                    </div>
+                    <div class="field-group">
+                        <label class="form-label">Worker Phone Number</label>
+                        <input type="tel" id="workerPhone" class="form-control" placeholder="Enter phone number">
+                    </div>
+                    <div class="field-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="workerPassword" class="form-control" placeholder="Enter password">
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                <div id="registerErrorMsg" class="error-msg" style="display: none;"></div>
+
+                <!-- Success Message -->
+                <div id="registerSuccessMsg" class="success-msg" style="display: none;"></div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-success w-100 mb-3">Register</button>
+
+                <!-- Toggle to Login -->
+                <div class="toggle-section">
+                    <p>Already have an account? <span class="toggle-link" onclick="toggleForms()">Login here</span></p>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Use the same hostname as the page that's being accessed
+    const API_URL = `http://${window.location.hostname}:5000/api`;
+
+    // Toggle between Login and Register forms
+    function toggleForms() {
+        document.querySelector('.auth-card').classList.toggle('hidden-section');
+        document.getElementById('registerSection').classList.toggle('hidden-section');
+    }
+
+    // Update register fields based on role selection
+    function updateRegisterFields() {
+        const role = document.getElementById('registerRole').value;
+        
+        // Hide all fields
+        document.getElementById('citizenFields').classList.remove('show');
+        document.getElementById('adminFields').classList.remove('show');
+        document.getElementById('municipalFields').classList.remove('show');
+        document.getElementById('workerFields').classList.remove('show');
+
+        // Show relevant fields
+        if (role === 'citizen') {
+            document.getElementById('citizenFields').classList.add('show');
+        } else if (role === 'admin') {
+            document.getElementById('adminFields').classList.add('show');
+        } else if (role === 'municipal_office') {
+            document.getElementById('municipalFields').classList.add('show');
+        } else if (role === 'worker') {
+            document.getElementById('workerFields').classList.add('show');
+        }
+    }
+
+    // LOGIN FORM SUBMISSION
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const role = document.getElementById('loginRole').value;
+        const id = document.getElementById('loginId').value;
+        const password = document.getElementById('loginPassword').value;
+        const errorMsg = document.getElementById('loginErrorMsg');
+
+        if (!role || !id || !password) {
+            errorMsg.innerText = 'Please fill in all fields';
+            errorMsg.style.display = 'block';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role, id, password })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                errorMsg.innerText = data.error || 'Login failed';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            // Save auth data
+            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+
+            // Route based on role to role-specific dashboards
+            const routeMap = {
+                'citizen': 'citizen-dashboard.html',
+                'collector': 'worker-dashboard.html',
+                'admin': 'admin-dashboard.html',
+                'municipal_office': 'municipal-dashboard.html'
+            };
+            
+            window.location.href = routeMap[data.user.role] || 'dashboard.html';
+        } catch (err) {
+            errorMsg.innerText = 'Server connection error.';
+            errorMsg.style.display = 'block';
+        }
+    });
+
+    // REGISTRATION FORM SUBMISSION
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const role = document.getElementById('registerRole').value;
+        const errorMsg = document.getElementById('registerErrorMsg');
+        const successMsg = document.getElementById('registerSuccessMsg');
+
+        errorMsg.style.display = 'none';
+        successMsg.style.display = 'none';
+
+        let registrationData = { role };
+
+        try {
+            if (role === 'citizen') {
+                registrationData = {
+                    ...registrationData,
+                    name: document.getElementById('citizenName').value,
+                    phone: document.getElementById('citizenPhone').value,
+                    area: document.getElementById('citizenArea').value,
+                    municipal_corporation: document.getElementById('citizenMunicipal').value,
+                    password: document.getElementById('citizenPassword').value
+                };
+            } else if (role === 'admin') {
+                registrationData = {
+                    ...registrationData,
+                    admin_id: document.getElementById('adminId').value,
+                    password: document.getElementById('adminPassword').value
+                };
+            } else if (role === 'municipal_office') {
+                registrationData = {
+                    ...registrationData,
+                    city: document.getElementById('municipalCity').value,
+                    officer_id: document.getElementById('municipalOfficerId').value,
+                    password: document.getElementById('municipalPassword').value
+                };
+            } else if (role === 'worker') {
+                registrationData = {
+                    ...registrationData,
+                    area: document.getElementById('workerArea').value,
+                    name: document.getElementById('workerName').value,
+                    phone: document.getElementById('workerPhone').value,
+                    password: document.getElementById('workerPassword').value
+                };
+            }
+
+            // Validate required fields
+            for (const [key, value] of Object.entries(registrationData)) {
+                if (!value && key !== 'role') {
+                    errorMsg.innerText = 'Please fill in all required fields';
+                    errorMsg.style.display = 'block';
+                    return;
+                }
+            }
+
+            const response = await fetch(`${API_URL}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(registrationData)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                errorMsg.innerText = data.error || 'Registration failed';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            successMsg.innerText = 'Registration successful! You can now login.';
+            successMsg.style.display = 'block';
+
+            // Reset form
+            document.getElementById('registerForm').reset();
+            
+            // Redirect to login after 2 seconds
+            setTimeout(() => {
+                toggleForms();
+            }, 2000);
+        } catch (err) {
+            errorMsg.innerText = 'Server connection error: ' + err.message;
+            errorMsg.style.display = 'block';
+        }
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BinBuddy – Municipal Smart Waste Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" />
+  <style>
+    :root {
+      --primary: #1a5276;
+      --secondary: #1e8449;
+      --light-bg: #f0f4f8;
+      --sidebar-w: 250px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--light-bg);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* SIDEBAR */
+    #sidebar {
+      width: var(--sidebar-w);
+      background: var(--primary);
+      color: #fff;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+    }
+
+    #sidebar .brand {
+      padding: 20px;
+      background: rgba(0, 0, 0, .25);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    #sidebar .brand i {
+      font-size: 1.6rem;
+      color: #2ecc71;
+    }
+
+    #sidebar nav {
+      flex: 1;
+      padding: 10px 0;
+      overflow-y: auto;
+    }
+
+    #sidebar nav a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      color: rgba(255, 255, 255, .8);
+      text-decoration: none;
+      transition: .2s;
+      font-size: .92rem;
+    }
+
+    #sidebar nav a:hover,
+    #sidebar nav a.active {
+      background: rgba(255, 255, 255, .12);
+      color: #fff;
+      border-left: 3px solid #2ecc71;
+    }
+
+    #sidebar nav a i {
+      width: 20px;
+      text-align: center;
+    }
+
+    .sidebar-section-label {
+      padding: 8px 20px 4px;
+      font-size: .7rem;
+      color: rgba(255, 255, 255, .4);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    #sidebar .sidebar-footer {
+      padding: 15px 20px;
+      font-size: .78rem;
+      color: rgba(255, 255, 255, .4);
+      border-top: 1px solid rgba(255, 255, 255, .1);
+    }
+
+    /* MAIN */
+    #main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* IOT BAR */
+    #iot-bar {
+      background: #154360;
+      color: #fff;
+      padding: 5px 24px;
+      font-size: .75rem;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .live-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      background: #2ecc71;
+      border-radius: 50%;
+      margin-right: 5px;
+      animation: blink 1.4s infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .25
+      }
+    }
+
+    /* TOPBAR */
+    #topbar {
+      background: #fff;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+      position: sticky;
+      top: 0;
+      z-index: 99;
+    }
+
+    #topbar .page-title {
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 1.05rem;
+    }
+
+    .notif-btn {
+      position: relative;
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      color: #555;
+      cursor: pointer;
+    }
+
+    .notif-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #e74c3c;
+      color: #fff;
+      font-size: .62rem;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .88rem;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      background: var(--secondary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: .85rem;
+    }
+
+    /* SECTIONS */
+    .page-section {
+      display: none;
+      padding: 24px;
+      animation: fadeIn .2s;
+    }
+
+    .page-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    /* KPI */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .07);
+      transition: .15s;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .kpi-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+
+    .kpi-value {
+      font-size: 1.7rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .kpi-label {
+      font-size: .77rem;
+      color: #666;
+      margin-top: 3px;
+    }
+
+    /* MAP */
+    #map-container {
+      height: 370px;
+      border-radius: 0 0 10px 10px;
+      overflow: hidden;
+      background: #e8eaed;
+    }
+
+    #map,
+    #map-big {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* CARD BOX */
+    .card-box {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .07);
+      overflow: hidden;
+    }
+
+    .card-box-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid #eee;
+      font-weight: 600;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: .95rem;
+    }
+
+    .table-responsive {
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .875rem;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #555;
+      font-weight: 600;
+      padding: 10px 14px;
+      text-align: left;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: #f9fafb;
+    }
+
+    /* BADGES */
+    .bs {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: .73rem;
+      font-weight: 600;
+    }
+
+    .bs-empty {
+      background: #d5f5e3;
+      color: #1e8449;
+    }
+
+    .bs-half {
+      background: #fef9e7;
+      color: #b7950b;
+    }
+
+    .bs-full {
+      background: #fdecea;
+      color: #c0392b;
+    }
+
+    .bs-collected {
+      background: #e8f4f8;
+      color: #1a5276;
+    }
+
+    .bs-open {
+      background: #fdecea;
+      color: #c0392b;
+    }
+
+    .bs-resolved {
+      background: #d5f5e3;
+      color: #1e8449;
+    }
+
+    .bs-in_progress {
+      background: #fef9e7;
+      color: #b7950b;
+    }
+
+    .bs-success {
+      background: #d5f5e3;
+      color: #1e8449;
+    }
+
+    .bs-failed {
+      background: #fdecea;
+      color: #c0392b;
+    }
+
+    .bs-register {
+      background: #e8f4f8;
+      color: #1a5276;
+    }
+
+    .bs-admin {
+      background: #f4ecf7;
+      color: #8e44ad;
+    }
+
+    .bs-collector {
+      background: #fef9e7;
+      color: #b7950b;
+    }
+
+    .bs-citizen {
+      background: #e8f4f8;
+      color: #1a5276;
+    }
+
+    .bs-active {
+      background: #d5f5e3;
+      color: #1e8449;
+    }
+
+    .bs-pending {
+      background: #fef9e7;
+      color: #b7950b;
+    }
+
+    /* FILL BAR */
+    .fill-bar {
+      height: 8px;
+      background: #eee;
+      border-radius: 4px;
+      overflow: hidden;
+      min-width: 80px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .fill-bar-inner {
+      height: 100%;
+      border-radius: 4px;
+      transition: width .5s;
+    }
+
+    /* FILTER ROW */
+    .filter-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .filter-row select,
+    .filter-row input {
+      padding: 7px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: .87rem;
+      background: #fff;
+    }
+
+    /* CHART */
+    .chart-box {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .07);
+    }
+
+    /* ══ AUTH SCREENS ══ */
+    .auth-screen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #1a5276 0%, #0d3349 50%, #1e8449 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .auth-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 36px 34px;
+      width: 420px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+    }
+
+    .reg-card {
+      width: 500px;
+      max-height: 92vh;
+      overflow-y: auto;
+    }
+
+    .auth-logo {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+
+    .auth-logo .icon {
+      font-size: 2.8rem;
+      color: #1e8449;
+    }
+
+    .auth-logo h2 {
+      font-weight: 700;
+      color: #1a5276;
+      margin-top: 6px;
+    }
+
+    .auth-logo p {
+      color: #999;
+      font-size: .82rem;
+    }
+
+    .fl {
+      font-size: .82rem;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .fc {
+      width: 100%;
+      padding: 9px 13px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: .88rem;
+      margin-bottom: 12px;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .fc:focus {
+      border-color: #1a5276;
+    }
+
+    .btn-auth {
+      width: 100%;
+      padding: 11px;
+      background: #1a5276;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: .2s;
+      margin-top: 2px;
+    }
+
+    .btn-auth:hover {
+      background: #154360;
+    }
+
+    .btn-auth.green {
+      background: #1e8449;
+    }
+
+    .btn-auth.green:hover {
+      background: #196f3d;
+    }
+
+    .auth-err {
+      background: #fdecea;
+      color: #c0392b;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: .82rem;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    .auth-ok {
+      background: #d5f5e3;
+      color: #1e8449;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: .82rem;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    .auth-switch {
+      text-align: center;
+      margin-top: 14px;
+      font-size: .82rem;
+      color: #999;
+    }
+
+    .auth-switch a {
+      color: #1a5276;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .auth-switch a:hover {
+      text-decoration: underline;
+    }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ════════════ LOGIN ════════════ -->
+  <div id="login-screen" class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="icon"><i class="bi bi-trash2-fill"></i></div>
+        <h2>BinBuddy</h2>
+        <p>Municipal Smart Waste Management System</p>
+      </div>
+      <div id="login-err" class="auth-err"></div>
+      <label class="fl">Email Address</label>
+      <input class="fc" type="email" id="l-email" placeholder="admin@municipal.gov.in" />
+      <label class="fl">Password</label>
+      <input class="fc" type="password" id="l-pass" placeholder="••••••••" />
+      <button class="btn-auth" id="login-btn" onclick="doLogin()">
+        <i class="bi bi-box-arrow-in-right"></i> &nbsp;Login to Dashboard
+      </button>
+      <div class="auth-switch">
+        New municipal office? <a onclick="showReg()">Register here →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ REGISTER ════════════ -->
+  <div id="reg-screen" class="auth-screen" style="display:none">
+    <div class="auth-card reg-card">
+      <div class="auth-logo">
+        <div class="icon"><i class="bi bi-building"></i></div>
+        <h2>Register Office</h2>
+        <p>Municipal Office / Collector / Citizen Registration</p>
+      </div>
+      <div id="reg-err" class="auth-err"></div>
+      <div id="reg-ok" class="auth-ok"></div>
+
+      <div class="form-row-2">
+        <div>
+          <label class="fl">Full Name *</label>
+          <input class="fc" id="r-name" placeholder="Your full name" />
+        </div>
+        <div>
+          <label class="fl">Phone *</label>
+          <input class="fc" id="r-phone" placeholder="9876543210" />
+        </div>
+      </div>
+      <label class="fl">Email Address *</label>
+      <input class="fc" type="email" id="r-email" placeholder="you@municipal.gov.in" />
+      <div class="form-row-2">
+        <div>
+          <label class="fl">Password *</label>
+          <input class="fc" type="password" id="r-pass" placeholder="Min 6 characters" />
+        </div>
+        <div>
+          <label class="fl">Confirm Password *</label>
+          <input class="fc" type="password" id="r-conf" placeholder="Re-enter password" />
+        </div>
+      </div>
+      <label class="fl">Registering As *</label>
+      <select class="fc" id="r-role" onchange="onRoleChange()">
+        <option value="">-- Select Role --</option>
+        <option value="municipal_office">🏛️ Municipal Office (Admin)</option>
+        <option value="collector">🚛 Waste Collector</option>
+        <option value="citizen">👤 Citizen</option>
+      </select>
+
+      <div id="extra-fields" style="display:none">
+        <label class="fl">Department / Office Name</label>
+        <input class="fc" id="r-office" placeholder="e.g. Nashik Municipal Corporation – Solid Waste Dept" />
+        <label class="fl">Assign Zone / Ward</label>
+        <select class="fc" id="r-zone">
+          <option value="">-- Select Zone (optional) --</option>
+        </select>
+      </div>
+
+      <button class="btn-auth green" id="reg-btn" onclick="doRegister()">
+        <i class="bi bi-person-plus-fill"></i> &nbsp;Submit Registration
+      </button>
+      <div class="auth-switch">
+        Already have an account? <a onclick="showLogin()">Login here →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ SIDEBAR ════════════ -->
+  <div id="sidebar">
+    <div class="brand"><i class="bi bi-trash2-fill"></i> BinBuddy</div>
+    <nav id="snav">
+      <div class="sidebar-section-label">Main</div>
+      <a href="#" class="active" onclick="return nav('overview')"><i class="bi bi-grid-1x2-fill"></i> Overview</a>
+      <a href="#" onclick="return nav('map')"> <i class="bi bi-map-fill"></i> Live Map</a>
+      <a href="#" onclick="return nav('bins')"> <i class="bi bi-trash-fill"></i> Bins</a>
+      <a href="#" onclick="return nav('collections')"><i class="bi bi-truck"></i> Collections</a>
+      <a href="#" onclick="return nav('complaints')"><i class="bi bi-megaphone-fill"></i> Complaints</a>
+      <a href="#" onclick="return nav('analytics')"><i class="bi bi-bar-chart-fill"></i> Analytics</a>
+      <div class="sidebar-section-label" id="admin-label" style="display:none">Admin</div>
+      <a href="#" id="nav-users" style="display:none" onclick="return nav('users')"> <i class="bi bi-people-fill"></i>
+        Users</a>
+      <a href="#" id="nav-logs" style="display:none" onclick="return nav('loginlogs')"><i
+          class="bi bi-clock-history"></i> Login Logs</a>
+    </nav>
+    <div class="sidebar-footer">BinBuddy v1.0 © 2024<br>Municipal Corporation</div>
+  </div>
+
+  <!-- ════════════ MAIN CONTENT ════════════ -->
+  <div id="main">
+
+    <!-- IoT live status bar -->
+    <div id="iot-bar">
+      <span><span class="live-dot"></span>IoT Live Feed</span>
+      <span id="iot-msg">Waiting for sensor data…</span>
+      <span id="iot-devices" style="margin-left:auto"></span>
+      <span id="iot-refresh" style="margin-left:16px;opacity:.6;cursor:pointer" onclick="loadOverview()">⟳ Auto-refresh:
+        15s</span>
+    </div>
+
+    <!-- Top bar -->
+    <div id="topbar">
+      <div class="page-title" id="ptitle">Dashboard Overview</div>
+      <div class="d-flex align-items:center gap-3">
+        <span id="clock" style="font-size:.8rem;color:#999"></span>
+        <button class="notif-btn ms-3" onclick="return nav('complaints')">
+          <i class="bi bi-bell-fill"></i>
+          <span class="notif-badge" id="nb">0</span>
+        </button>
+        <div class="user-chip ms-3">
+          <div class="avatar" id="uav">A</div>
+          <div style="line-height:1.2">
+            <div id="uname" style="font-weight:600">Admin</div>
+            <div id="urole" style="font-size:.72rem;color:#aaa">admin</div>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary ms-2" onclick="logout()" title="Logout"
+            style="font-size:.75rem;padding:2px 8px">
+            <i class="bi bi-box-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── OVERVIEW ── -->
+    <div class="page-section active" id="sec-overview">
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div class="row g-4">
+        <div class="col-lg-8">
+          <div class="card-box">
+            <div class="card-box-header">
+              <span><i class="bi bi-map"></i> Live Bin Map</span>
+              <button class="btn btn-sm btn-outline-secondary" onclick="return nav('map')"><i
+                  class="bi bi-fullscreen"></i> Full Map</button>
+            </div>
+            <div id="map-container">
+              <div id="map"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="card-box" style="height:100%">
+            <div class="card-box-header">
+              <span><i class="bi bi-exclamation-triangle-fill" style="color:#e74c3c"></i> Critical Bins</span>
+              <span class="badge bg-danger" id="fc">0</span>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Bin</th>
+                    <th>Fill</th>
+                    <th>Location</th>
+                  </tr>
+                </thead>
+                <tbody id="crit-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LIVE MAP FULL ── -->
+    <div class="page-section" id="sec-map">
+      <div class="card-box" style="height:calc(100vh - 135px)">
+        <div class="card-box-header">
+          <span><i class="bi bi-geo-alt-fill"></i> Live Bin Map</span>
+          <div style="display:flex;gap:12px;font-size:.8rem;align-items:center">
+            <span><span style="background:#2ecc71;border-radius:50%;width:11px;height:11px;display:inline-block"></span>
+              Empty</span>
+            <span><span style="background:#f39c12;border-radius:50%;width:11px;height:11px;display:inline-block"></span>
+              Half</span>
+            <span><span style="background:#e74c3c;border-radius:50%;width:11px;height:11px;display:inline-block"></span>
+              Full</span>
+            <button class="btn btn-sm btn-outline-primary" onclick="loadOverview()"><i
+                class="bi bi-arrow-clockwise"></i> Refresh</button>
+          </div>
+        </div>
+        <div id="map-big" style="height:calc(100% - 52px)"></div>
+      </div>
+    </div>
+
+    <!-- ── BINS ── -->
+    <div class="page-section" id="sec-bins">
+      <div class="filter-row">
+        <select id="bf-status" onchange="loadBins()">
+          <option value="">All Status</option>
+          <option value="full">Full</option>
+          <option value="half">Half</option>
+          <option value="empty">Empty</option>
+          <option value="collected">Collected</option>
+        </select>
+        <button class="btn btn-sm btn-success" onclick="loadBins()"><i class="bi bi-arrow-clockwise"></i>
+          Refresh</button>
+      </div>
+      <div class="card-box">
+        <div class="card-box-header">
+          <span><i class="bi bi-trash-fill"></i> All Bins — Live Sensor Data</span>
+          <span id="bins-n" style="font-size:.8rem;color:#888"></span>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Bin Code</th>
+                <th>Location</th>
+                <th>Fill Level</th>
+                <th>Status</th>
+                <th>Battery</th>
+                <th>Device ID</th>
+                <th>Last Sensor Update</th>
+              </tr>
+            </thead>
+            <tbody id="bins-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COLLECTIONS ── -->
+    <div class="page-section" id="sec-collections">
+      <div class="card-box">
+        <div class="card-box-header">
+          <span><i class="bi bi-truck"></i> Collection Log</span>
+          <button class="btn btn-sm btn-success" onclick="loadCollections()"><i
+              class="bi bi-arrow-clockwise"></i></button>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Bin</th>
+                <th>Collector</th>
+                <th>Fill at Pickup</th>
+                <th>Date & Time</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="coll-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COMPLAINTS ── -->
+    <div class="page-section" id="sec-complaints">
+      <div class="filter-row">
+        <select id="cf-status" onchange="loadComplaints()">
+          <option value="">All</option>
+          <option value="open">Open</option>
+          <option value="in_progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+        </select>
+        <button class="btn btn-sm btn-success" onclick="loadComplaints()"><i class="bi bi-arrow-clockwise"></i></button>
+      </div>
+      <div class="card-box">
+        <div class="card-box-header">
+          <span><i class="bi bi-megaphone-fill"></i> Citizen Complaints</span>
+          <span class="badge bg-danger" id="comp-n">0 Open</span>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Bin</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="comp-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ANALYTICS ── -->
+    <div class="page-section" id="sec-analytics">
+      <div class="row g-4">
+        <div class="col-md-5">
+          <div class="chart-box">
+            <h6 class="mb-3" style="color:var(--primary)"><i class="bi bi-pie-chart-fill"></i> Bin Status</h6><canvas
+              id="statusChart" height="280"></canvas>
+          </div>
+        </div>
+        <div class="col-md-7">
+          <div class="chart-box">
+            <h6 class="mb-3" style="color:var(--primary)"><i class="bi bi-bar-chart-fill"></i> Daily Collections (7
+              days)</h6><canvas id="collChart" height="280"></canvas>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="chart-box">
+            <h6 class="mb-3" style="color:var(--primary)"><i class="bi bi-bar-chart-steps"></i> Zone-wise Status</h6>
+            <canvas id="zoneChart" height="140"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── USERS (Admin) ── -->
+    <div class="page-section" id="sec-users">
+      <div class="filter-row">
+        <select id="uf-role" onchange="loadUsers()">
+          <option value="">All Roles</option>
+          <option value="admin">Admin</option>
+          <option value="collector">Collector</option>
+          <option value="citizen">Citizen</option>
+        </select>
+        <button class="btn btn-sm btn-success" onclick="loadUsers()"><i class="bi bi-arrow-clockwise"></i>
+          Refresh</button>
+      </div>
+      <div class="card-box">
+        <div class="card-box-header">
+          <span><i class="bi bi-people-fill"></i> Registered Users</span>
+          <span id="users-n" style="font-size:.8rem;color:#888"></span>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Phone</th>
+                <th>Zone</th>
+                <th>Registered</th>
+                <th>Last Login</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LOGIN LOGS (Admin) ── -->
+    <div class="page-section" id="sec-loginlogs">
+      <div class="filter-row">
+        <button class="btn btn-sm btn-success" onclick="loadLogs()"><i class="bi bi-arrow-clockwise"></i>
+          Refresh</button>
+        <span style="font-size:.8rem;color:#888">Last 100 events saved in audit_logs table</span>
+      </div>
+      <div class="card-box">
+        <div class="card-box-header">
+          <span><i class="bi bi-clock-history"></i> Login History & Audit Log</span>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>User</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Event</th>
+                <th>IP Address</th>
+                <th>Details</th>
+                <th>Date & Time</th>
+              </tr>
+            </thead>
+            <tbody id="logs-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>
+    // ═══════════════════════════════════════════════════
+    //  CONFIG
+    // ═══════════════════════════════════════════════════
+    const API = `http://${window.location.hostname}:5000/api`;
+    let TOKEN = localStorage.getItem('bb_token');
+    let ME = JSON.parse(localStorage.getItem('bb_me') || '{}');
+    let mapS, mapB, mkS = [], mkB = [], allBins = [];
+    let cStat, cColl, cZone, autoTimer;
+
+    // ═══════════════════════════════════════════════════
+    //  AUTH SCREEN NAVIGATION
+    // ═══════════════════════════════════════════════════
+    function showReg() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('reg-screen').style.display = 'flex';
+      fetchZones();
+    }
+    function showLogin() {
+      document.getElementById('reg-screen').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+    }
+    function onRoleChange() {
+      const r = document.getElementById('r-role').value;
+      document.getElementById('extra-fields').style.display =
+        (r === 'municipal_office' || r === 'collector') ? 'block' : 'none';
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  FETCH ZONES for register dropdown
+    // ═══════════════════════════════════════════════════
+    async function fetchZones() {
+      try {
+        const r = await fetch(`${API}/auth/zones`);
+        const z = await r.json();
+        const s = document.getElementById('r-zone');
+        s.innerHTML = '<option value="">-- Select Zone (optional) --</option>';
+        z.forEach(z => s.innerHTML += `<option value="${z.id}">${z.name} (${z.ward_number})</option>`);
+      } catch { }
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  REGISTER  →  calls POST /api/auth/register
+    // ═══════════════════════════════════════════════════
+    async function doRegister() {
+      const err = document.getElementById('reg-err');
+      const ok = document.getElementById('reg-ok');
+      err.style.display = 'none'; ok.style.display = 'none';
+
+      const name = document.getElementById('r-name').value.trim();
+      const phone = document.getElementById('r-phone').value.trim();
+      const email = document.getElementById('r-email').value.trim();
+      const pass = document.getElementById('r-pass').value;
+      const conf = document.getElementById('r-conf').value;
+      const role = document.getElementById('r-role').value;
+      const zone = document.getElementById('r-zone').value;
+
+      if (!name || !email || !pass || !role) {
+        err.textContent = 'Please fill all required fields (*).';
+        err.style.display = 'block'; return;
+      }
+      if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; err.style.display = 'block'; return; }
+      if (pass !== conf) { err.textContent = 'Passwords do not match.'; err.style.display = 'block'; return; }
+
+      const btn = document.getElementById('reg-btn');
+      btn.disabled = true; btn.textContent = 'Submitting…';
+
+      try {
+        const res = await fetch(`${API}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, phone, email, password: pass, role, zone_id: zone ? +zone : null })
+        });
+        const d = await res.json();
+        if (!res.ok) { err.textContent = d.error || 'Registration failed.'; err.style.display = 'block'; }
+        else {
+          ok.innerHTML = d.pending_approval
+            ? '✅ Registration submitted! Your account is <strong>pending admin approval</strong>. You will be able to login after approval.'
+            : '✅ Registered! You can now <a onclick="showLogin()" style="color:var(--primary);cursor:pointer">login here</a>.';
+          ok.style.display = 'block';
+          // clear form
+          ['r-name', 'r-phone', 'r-email', 'r-pass', 'r-conf', 'r-office'].forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; });
+          document.getElementById('r-role').value = ''; document.getElementById('r-zone').value = '';
+          document.getElementById('extra-fields').style.display = 'none';
+        }
+      } catch {
+        err.textContent = 'Cannot reach server. Make sure Flask is running (python app.py).';
+        err.style.display = 'block';
+      }
+      btn.disabled = false; btn.innerHTML = '<i class="bi bi-person-plus-fill"></i> &nbsp;Submit Registration';
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  LOGIN  →  calls POST /api/auth/login, saves token
+    // ═══════════════════════════════════════════════════
+    async function doLogin() {
+      const err = document.getElementById('login-err');
+      err.style.display = 'none';
+      const email = document.getElementById('l-email').value.trim();
+      const pass = document.getElementById('l-pass').value;
+      if (!email || !pass) { err.textContent = 'Enter email and password.'; err.style.display = 'block'; return; }
+
+      const btn = document.getElementById('login-btn');
+      btn.disabled = true; btn.textContent = 'Logging in…';
+
+      try {
+        const res = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pass })
+        });
+        const d = await res.json();
+        if (!res.ok) {
+          // Shows: "Invalid email or password" or "pending admin approval" etc.
+          err.textContent = d.error || 'Login failed.';
+          err.style.display = 'block';
+        } else {
+          TOKEN = d.access_token; ME = d.user;
+          localStorage.setItem('bb_token', TOKEN);
+          localStorage.setItem('bb_me', JSON.stringify(ME));
+          initDashboard();
+        }
+      } catch {
+        // Demo mode if server not reachable
+        err.innerHTML = '⚠️ Cannot reach server — <strong>Demo Mode</strong> (no DB). <br><small>Start Flask first for real data.</small>';
+        err.style.display = 'block';
+        setTimeout(() => { TOKEN = 'demo'; ME = { name: 'Demo Admin', role: 'admin', id: 0 }; initDashboard(); }, 1400);
+      }
+      btn.disabled = false; btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> &nbsp;Login to Dashboard';
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('l-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+      document.getElementById('l-email').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('l-pass').focus(); });
+    });
+
+    // ═══════════════════════════════════════════════════
+    //  INIT DASHBOARD
+    // ═══════════════════════════════════════════════════
+    function initDashboard() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('reg-screen').style.display = 'none';
+      document.getElementById('uname').textContent = ME.name || 'User';
+      document.getElementById('uav').textContent = (ME.name || 'A')[0].toUpperCase();
+      document.getElementById('urole').textContent = ME.role || '';
+      if (ME.role === 'admin') {
+        document.getElementById('nav-users').style.display = 'flex';
+        document.getElementById('nav-logs').style.display = 'flex';
+        document.getElementById('admin-label').style.display = 'block';
+      }
+      startClock();
+      loadLeafletMap();
+      loadOverview();
+      autoTimer = setInterval(loadOverview, 15000); // refresh every 15s for live IoT
+    }
+    if (TOKEN) initDashboard();
+
+    // ═══════════════════════════════════════════════════
+    //  LOGOUT
+    // ═══════════════════════════════════════════════════
+    function logout() {
+      clearInterval(autoTimer);
+      localStorage.clear();
+      location.reload();
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  NAVIGATION
+    // ═══════════════════════════════════════════════════
+    const TITLES = {
+      overview: 'Dashboard Overview', map: 'Live Bin Map', bins: 'Bin Management',
+      collections: 'Collection Log', complaints: 'Citizen Complaints', analytics: 'Analytics',
+      users: 'User Management', loginlogs: 'Login History & Audit Log'
+    };
+    function nav(name) {
+      document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+      document.getElementById(`sec-${name}`).classList.add('active');
+      document.querySelectorAll('#snav a').forEach(a => a.classList.remove('active'));
+      document.querySelectorAll('#snav a').forEach(a => { if ((a.getAttribute('onclick') || '').includes(`'${name}'`)) a.classList.add('active'); });
+      document.getElementById('ptitle').textContent = TITLES[name] || name;
+      ({
+        bins: loadBins, collections: loadCollections, complaints: loadComplaints,
+        analytics: loadAnalytics, users: loadUsers, loginlogs: loadLogs
+      })[name]?.();
+      return false;
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  CLOCK
+    // ═══════════════════════════════════════════════════
+    function startClock() {
+      setInterval(() => {
+        document.getElementById('clock').textContent =
+          new Date().toLocaleString('en-IN', { hour12: true });
+      }, 1000);
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  API HELPER
+    // ═══════════════════════════════════════════════════
+    async function call(path, opts = {}) {
+      const h = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+      if (TOKEN && TOKEN !== 'demo') h['Authorization'] = `Bearer ${TOKEN}`;
+      try {
+        const r = await fetch(`${API}${path}`, { ...opts, headers: h });
+        if (r.status === 401) { logout(); return null; }
+        return r;
+      } catch { return null; }
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  MOCK DATA (demo mode only)
+    // ═══════════════════════════════════════════════════
+    const MOCK_BINS = [
+      { id: 1, bin_code: 'BIN-W01-001', location_name: 'Gandhi Chowk', latitude: 20.006, longitude: 73.767, fill_level: 92, status: 'full', battery_level: 78, device_id: 'ESP-001', last_updated: new Date().toISOString() },
+      { id: 2, bin_code: 'BIN-W01-002', location_name: 'Market Road', latitude: 20.012, longitude: 73.771, fill_level: 55, status: 'half', battery_level: 92, device_id: 'ESP-002', last_updated: new Date().toISOString() },
+      { id: 3, bin_code: 'BIN-W02-001', location_name: 'Nehru Park', latitude: 19.999, longitude: 73.764, fill_level: 12, status: 'empty', battery_level: 88, device_id: 'ESP-003', last_updated: new Date().toISOString() },
+      { id: 4, bin_code: 'BIN-W02-002', location_name: 'College Road', latitude: 20.020, longitude: 73.758, fill_level: 88, status: 'full', battery_level: 45, device_id: 'ESP-004', last_updated: new Date().toISOString() },
+      { id: 5, bin_code: 'BIN-W03-001', location_name: 'Central Bus Stand', latitude: 20.008, longitude: 73.780, fill_level: 42, status: 'half', battery_level: 99, device_id: 'ESP-005', last_updated: new Date().toISOString() },
+    ];
+    const MOCK_SUM = { total_bins: 10, full_bins: 3, half_bins: 3, empty_bins: 4, collected_today: 5, open_complaints: 3, active_collectors: 3 };
+
+    // ═══════════════════════════════════════════════════
+    //  OVERVIEW  (fetches real DB data every 15s)
+    // ═══════════════════════════════════════════════════
+    async function loadOverview() {
+      let sum, bins;
+      if (TOKEN === 'demo') { sum = MOCK_SUM; bins = MOCK_BINS; }
+      else {
+        const [r1, r2] = await Promise.all([call('/reports/summary'), call('/bins/')]);
+        if (!r1 || !r2) return;
+        sum = await r1.json(); bins = await r2.json();
+      }
+      allBins = bins;
+      renderKPIs(sum);
+      renderCritical(bins.filter(b => b.fill_level >= 80));
+      document.getElementById('nb').textContent = sum.open_complaints;
+      document.getElementById('fc').textContent = sum.full_bins;
+      updateMarkers(bins);
+      // Update IoT bar
+      const newest = bins.reduce((a, b) => new Date(a.last_updated || 0) > new Date(b.last_updated || 0) ? a : b, bins[0] || {});
+      if (newest?.last_updated) {
+        document.getElementById('iot-msg').textContent =
+          `Last update: ${new Date(newest.last_updated).toLocaleString('en-IN')} — ${newest.bin_code} (${newest.fill_level?.toFixed(0)}%)`;
+      }
+      document.getElementById('iot-devices').textContent = `${bins.filter(b => b.device_id).length} ESP devices`;
+    }
+
+    function renderKPIs(s) {
+      const C = [
+        { l: 'Total Bins', v: s.total_bins, i: 'bi-trash-fill', c: '#1a5276', bg: '#d6eaf8' },
+        { l: 'Full Bins 🚨', v: s.full_bins, i: 'bi-exclamation-triangle-fill', c: '#c0392b', bg: '#fdecea' },
+        { l: 'Half Full', v: s.half_bins, i: 'bi-hourglass-split', c: '#b7950b', bg: '#fef9e7' },
+        { l: 'Empty', v: s.empty_bins, i: 'bi-check-circle-fill', c: '#1e8449', bg: '#d5f5e3' },
+        { l: 'Collected Today', v: s.collected_today, i: 'bi-truck', c: '#117a65', bg: '#d0f0ea' },
+        { l: 'Open Complaints', v: s.open_complaints, i: 'bi-megaphone-fill', c: '#8e44ad', bg: '#f4ecf7' },
+        { l: 'Active Collectors', v: s.active_collectors, i: 'bi-people-fill', c: '#2c3e50', bg: '#eaecee' },
+      ];
+      document.getElementById('kpi-grid').innerHTML = C.map(c => `
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:${c.bg};color:${c.c}"><i class="bi ${c.i}"></i></div>
+      <div><div class="kpi-value" style="color:${c.c}">${c.v}</div><div class="kpi-label">${c.l}</div></div>
+    </div>`).join('');
+    }
+
+    function renderCritical(bins) {
+      const b = document.getElementById('crit-body');
+      if (!bins.length) { b.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:#2ecc71"><i class="bi bi-check-circle-fill"></i> All bins OK</td></tr>'; return; }
+      b.innerHTML = bins.sort((a, x) => x.fill_level - a.fill_level).slice(0, 8).map(b => `
+    <tr>
+      <td><strong style="color:var(--primary)">${b.bin_code}</strong></td>
+      <td><div class="fill-bar"><div class="fill-bar-inner" style="width:${b.fill_level}%;background:${b.fill_level >= 90 ? '#e74c3c' : '#f39c12'}"></div></div> <span style="font-size:.78rem">${b.fill_level.toFixed(0)}%</span></td>
+      <td style="font-size:.8rem;color:#555">${b.location_name || '—'}</td>
+    </tr>`).join('');
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  LEAFLET MAP  (free, no API key)
+    // ═══════════════════════════════════════════════════
+    function loadLeafletMap() {
+      const lc = document.createElement('link'); lc.rel = 'stylesheet';
+      lc.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(lc);
+      const ls = document.createElement('script');
+      ls.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      ls.onload = () => {
+        mapS = L.map('map').setView([20.005, 73.767], 13);
+        mapB = L.map('map-big').setView([20.005, 73.767], 13);
+        [mapS, mapB].forEach(m => L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(m));
+        updateMarkers(allBins.length ? allBins : MOCK_BINS);
+      };
+      document.head.appendChild(ls);
+    }
+
+    function col(f) { return f >= 90 ? '#e74c3c' : f >= 50 ? '#f39c12' : '#2ecc71'; }
+
+    function updateMarkers(bins) {
+      if (!window.L || !mapS) return;
+      [...mkS, ...mkB].forEach(m => m.remove()); mkS = []; mkB = [];
+      bins.forEach(b => {
+        const ic = L.divIcon({
+          html: `<div style="width:18px;height:18px;background:${col(b.fill_level)};border:2.5px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,
+          iconSize: [18, 18], iconAnchor: [9, 9]
+        });
+        const popup = `<b>${b.bin_code}</b><br>${b.location_name || ''}<br>Fill: <b>${b.fill_level?.toFixed(0)}%</b><br>Status: <b>${b.status}</b><br>Device: ${b.device_id || '—'}<br><small>Updated: ${b.last_updated ? new Date(b.last_updated).toLocaleString('en-IN') : '—'}</small>`;
+        mkS.push(L.marker([b.latitude, b.longitude], { icon: ic }).addTo(mapS).bindPopup(popup));
+        mkB.push(L.marker([b.latitude, b.longitude], { icon: ic }).addTo(mapB).bindPopup(popup));
+      });
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  BINS TABLE  (real DB — shows device_id & last_updated from ESP)
+    // ═══════════════════════════════════════════════════
+    async function loadBins() {
+      let bins;
+      if (TOKEN === 'demo') { bins = MOCK_BINS; }
+      else {
+        const st = document.getElementById('bf-status')?.value || '';
+        const r = await call(`/bins/${st ? '?status=' + st : ''}`); if (!r) return;
+        bins = await r.json();
+      }
+      document.getElementById('bins-n').textContent = `${bins.length} bins`;
+      document.getElementById('bins-body').innerHTML = bins.map(b => `
+    <tr>
+      <td><strong>${b.bin_code}</strong></td>
+      <td style="font-size:.82rem">${b.location_name || '—'}</td>
+      <td>
+        <div class="fill-bar"><div class="fill-bar-inner" style="width:${b.fill_level}%;background:${col(b.fill_level)}"></div></div>
+        <span style="font-size:.78rem;margin-left:6px">${b.fill_level?.toFixed(1)}%</span>
+      </td>
+      <td><span class="bs bs-${b.status}">${b.status?.toUpperCase()}</span></td>
+      <td style="color:${b.battery_level < 20 ? '#e74c3c' : '#2ecc71'};font-weight:600">${b.battery_level?.toFixed(0)}%</td>
+      <td style="font-family:monospace;font-size:.8rem;color:#555">${b.device_id || '—'}</td>
+      <td style="font-size:.78rem;color:#888">${b.last_updated ? new Date(b.last_updated).toLocaleString('en-IN') : '—'}</td>
+    </tr>`).join('');
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  COLLECTIONS
+    // ═══════════════════════════════════════════════════
+    async function loadCollections() {
+      let items = [];
+      if (TOKEN !== 'demo') {
+        const r = await call('/collections/'); if (r) items = await r.json();
+      }
+      document.getElementById('coll-body').innerHTML = items.length
+        ? items.map(c => `<tr><td>${c.id}</td><td>Bin #${c.bin_id}</td><td>${c.collector_id || '—'}</td><td>${c.fill_at_collection != null ? c.fill_at_collection.toFixed(0) + '%' : '—'}</td><td>${new Date(c.collected_at).toLocaleString('en-IN')}</td><td>${c.notes || '—'}</td></tr>`).join('')
+        : '<tr><td colspan="6" style="text-align:center;padding:20px;color:#aaa">No records yet</td></tr>';
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  COMPLAINTS
+    // ═══════════════════════════════════════════════════
+    async function loadComplaints() {
+      let items;
+      if (TOKEN === 'demo') {
+        items = [
+          { id: 1, bin_id: 1, category: 'overflow', description: 'Overflowing near Gandhi Chowk', priority: 'high', status: 'open', created_at: new Date().toISOString() },
+          { id: 2, bin_id: 4, category: 'smell', description: 'Bad smell College Road bin', priority: 'medium', status: 'in_progress', created_at: new Date().toISOString() },
+        ];
+      } else {
+        const st = document.getElementById('cf-status')?.value || '';
+        const r = await call(`/complaints/${st ? '?status=' + st : ''}`); if (!r) return;
+        items = await r.json();
+      }
+      document.getElementById('comp-n').textContent = `${items.filter(c => c.status === 'open').length} Open`;
+      document.getElementById('comp-body').innerHTML = items.map(c => `
+    <tr>
+      <td>${c.id}</td><td>${c.bin_id ? '#' + c.bin_id : '—'}</td><td>${c.category}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.description}</td>
+      <td><span class="bs" style="background:${c.priority === 'high' ? '#fdecea' : c.priority === 'medium' ? '#fef9e7' : '#eee'};color:${c.priority === 'high' ? '#c0392b' : c.priority === 'medium' ? '#b7950b' : '#555'}">${c.priority}</span></td>
+      <td><span class="bs bs-${c.status}">${c.status.replace('_', ' ').toUpperCase()}</span></td>
+      <td style="font-size:.78rem">${new Date(c.created_at).toLocaleDateString('en-IN')}</td>
+      <td>${c.status !== 'resolved' ? `<button class="btn btn-sm btn-outline-success py-0 px-2" style="font-size:.75rem" onclick="resolveComp(${c.id})">Resolve</button>` : '✓'}</td>
+    </tr>`).join('');
+    }
+    async function resolveComp(id) { if (TOKEN !== 'demo') await call(`/complaints/${id}`, { method: 'PUT', body: JSON.stringify({ status: 'resolved' }) }); loadComplaints(); }
+
+    // ═══════════════════════════════════════════════════
+    //  ANALYTICS
+    // ═══════════════════════════════════════════════════
+    async function loadAnalytics() {
+      let sum, daily, zones;
+      if (TOKEN === 'demo') {
+        sum = { ...MOCK_SUM };
+        daily = [{ date: 'Mon', count: 4 }, { date: 'Tue', count: 7 }, { date: 'Wed', count: 5 }, { date: 'Thu', count: 9 }, { date: 'Fri', count: 6 }, { date: 'Sat', count: 8 }, { date: 'Sun', count: 3 }];
+        zones = [{ zone: 'Ward 1', full: 1, half: 1, empty: 1 }, { zone: 'Ward 2', full: 1, half: 0, empty: 2 }, { zone: 'Ward 3', full: 1, half: 2, empty: 0 }];
+      } else {
+        const [r1, r2, r3] = await Promise.all([call('/reports/summary'), call('/reports/collections-daily'), call('/reports/zone-status')]);
+        if (!r1 || !r2 || !r3) return;
+        sum = await r1.json(); daily = await r2.json(); zones = await r3.json();
+      }
+      if (cStat) cStat.destroy();
+      cStat = new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Empty', 'Half', 'Full'],
+          datasets: [{ data: [sum.empty_bins, sum.half_bins, sum.full_bins], backgroundColor: ['#2ecc71', '#f39c12', '#e74c3c'], borderWidth: 2 }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+      });
+      if (cColl) cColl.destroy();
+      cColl = new Chart(document.getElementById('collChart'), {
+        type: 'bar',
+        data: { labels: daily.map(d => d.date?.slice?.(5) || d.date), datasets: [{ label: 'Collections', data: daily.map(d => d.count), backgroundColor: '#1a5276', borderRadius: 6 }] },
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+      });
+      if (cZone) cZone.destroy();
+      cZone = new Chart(document.getElementById('zoneChart'), {
+        type: 'bar',
+        data: {
+          labels: zones.map(z => z.zone || z.ward),
+          datasets: [{ label: 'Empty', data: zones.map(z => z.empty), backgroundColor: '#2ecc71', borderRadius: 4 }, { label: 'Half', data: zones.map(z => z.half), backgroundColor: '#f39c12', borderRadius: 4 }, { label: 'Full', data: zones.map(z => z.full), backgroundColor: '#e74c3c', borderRadius: 4 }]
+        },
+        options: { scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }
+      });
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  USERS  (Admin only — real DB data)
+    // ═══════════════════════════════════════════════════
+    async function loadUsers() {
+      if (TOKEN === 'demo') { document.getElementById('users-body').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:#aaa">Login with real credentials to see users from DB</td></tr>'; return; }
+      const role = document.getElementById('uf-role')?.value || '';
+      const r = await call(`/auth/users${role ? '?role=' + role : ''}`); if (!r) return;
+      const users = await r.json();
+      document.getElementById('users-n').textContent = `${users.length} users`;
+      document.getElementById('users-body').innerHTML = users.map(u => `
+    <tr>
+      <td>${u.id}</td>
+      <td><strong>${u.name}</strong></td>
+      <td style="font-size:.82rem">${u.email}</td>
+      <td><span class="bs bs-${u.role}">${u.role}</span></td>
+      <td>${u.phone || '—'}</td>
+      <td>${u.zone_id ? 'Ward ' + u.zone_id : '—'}</td>
+      <td style="font-size:.78rem">${u.created_at}</td>
+      <td style="font-size:.78rem">${u.last_login}</td>
+      <td>${u.is_approved ? '<span class="bs bs-active">Active</span>' : '<span class="bs bs-pending">Pending</span>'}</td>
+      <td style="display:flex;gap:4px">
+        ${!u.is_approved ? `<button class="btn btn-sm btn-success py-0 px-2" style="font-size:.73rem" onclick="approveUser(${u.id})">Approve</button>` : ''}
+        ${u.is_active && u.role !== 'admin' ? `<button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:.73rem" onclick="disableUser(${u.id})">Disable</button>` : ''}
+      </td>
+    </tr>`).join('');
+    }
+    async function approveUser(id) { await call(`/auth/approve/${id}`, { method: 'PUT' }); loadUsers(); }
+    async function disableUser(id) { if (!confirm('Disable this user?')) return; await call(`/auth/users/${id}/deactivate`, { method: 'PUT' }); loadUsers(); }
+
+    // ═══════════════════════════════════════════════════
+    //  LOGIN LOGS  (Admin only — real DB audit_logs table)
+    // ═══════════════════════════════════════════════════
+    async function loadLogs() {
+      let logs;
+      if (TOKEN === 'demo') {
+        logs = [
+          { id: 1, user_name: 'Municipal Admin', user_email: 'admin@municipal.gov.in', user_role: 'admin', action: 'LOGIN_SUCCESS', ip_address: '127.0.0.1', details: 'Successful login | Role: admin', time: '15 Jan 2024, 09:30:00 AM' },
+          { id: 2, user_name: 'Unknown', user_email: 'hacker@bad.com', user_role: '—', action: 'LOGIN_FAILED', ip_address: '192.168.1.99', details: 'Failed login attempt for email: hacker@bad.com', time: '15 Jan 2024, 09:28:00 AM' },
+          { id: 3, user_name: 'Ramesh Patil', user_email: 'ramesh@mc.gov.in', user_role: 'collector', action: 'REGISTER', ip_address: '127.0.0.1', details: 'New collector registered', time: '14 Jan 2024, 02:00:00 PM' },
+        ];
+      } else {
+        const r = await call('/auth/login-logs'); if (!r) return;
+        logs = await r.json();
+      }
+      document.getElementById('logs-body').innerHTML = logs.map(l => {
+        const cls = l.action === 'LOGIN_SUCCESS' ? 'bs-success' : l.action === 'REGISTER' ? 'bs-register' : 'bs-failed';
+        const lbl = l.action === 'LOGIN_SUCCESS' ? '✅ Login OK' : l.action === 'REGISTER' ? '📝 Registered' : '❌ Failed';
+        return `<tr>
+      <td>${l.id}</td>
+      <td><strong>${l.user_name}</strong></td>
+      <td style="font-size:.82rem">${l.user_email}</td>
+      <td><span class="bs bs-${l.user_role === 'admin' ? 'full' : l.user_role === 'collector' ? 'collector' : 'citizen'}">${l.user_role}</span></td>
+      <td><span class="bs ${cls}">${lbl}</span></td>
+      <td style="font-family:monospace;font-size:.8rem">${l.ip_address}</td>
+      <td style="font-size:.78rem;color:#666;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.details}</td>
+      <td style="font-size:.78rem;color:#888;white-space:nowrap">${l.time}</td>
+    </tr>`;
+      }).join('');
+    }
+  </script>
+</body>
+
+</html>

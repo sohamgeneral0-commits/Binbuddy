@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BinBuddy – Live Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" />
+  <style>
+    :root {
+      --primary: #1a5276;
+      --secondary: #1e8449;
+      --light-bg: #f0f4f8;
+      --sidebar-w: 250px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--light-bg);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* SIDEBAR */
+    #sidebar {
+      width: var(--sidebar-w);
+      background: var(--primary);
+      color: #fff;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+    }
+
+    #sidebar .brand {
+      padding: 20px;
+      background: rgba(0, 0, 0, .25);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    #sidebar .brand i {
+      font-size: 1.6rem;
+      color: #2ecc71;
+    }
+
+    #sidebar nav a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      color: rgba(255, 255, 255, .8);
+      text-decoration: none;
+      transition: .2s;
+      font-size: .92rem;
+    }
+
+    #sidebar nav a:hover,
+    #sidebar nav a.active {
+      background: rgba(255, 255, 255, .12);
+      color: #fff;
+      border-left: 3px solid #2ecc71;
+    }
+
+    #sidebar nav a i {
+      width: 20px;
+      text-align: center;
+    }
+
+    #sidebar .sidebar-footer {
+      padding: 15px 20px;
+      font-size: .75rem;
+      color: rgba(255, 255, 255, .35);
+      border-top: 1px solid rgba(255, 255, 255, .1);
+    }
+
+    /* MAIN */
+    #main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* LIVE TOP BAR */
+    #live-bar {
+      background: #0d2137;
+      color: #fff;
+      padding: 7px 24px;
+      font-size: .76rem;
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #2ecc71;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px;
+      animation: blink 1.2s infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .15
+      }
+    }
+
+    #live-bar span {
+      display: flex;
+      align-items: center;
+    }
+
+    /* TOPBAR */
+    #topbar {
+      background: #fff;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+      position: sticky;
+      top: 0;
+      z-index: 99;
+    }
+
+    .page-title {
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 1.05rem;
+    }
+
+    .notif-btn {
+      position: relative;
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      color: #555;
+      cursor: pointer;
+    }
+
+    .notif-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #e74c3c;
+      color: #fff;
+      font-size: .6rem;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .88rem;
+      cursor: pointer;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      background: var(--secondary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* SECTIONS */
+    .page-section {
+      display: none;
+      padding: 24px;
+      animation: fadeIn .2s;
+    }
+
+    .page-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    /* KPI */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .kpi-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .07);
+    }
+
+    .kpi-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    .kpi-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .kpi-label {
+      font-size: .74rem;
+      color: #777;
+      margin-top: 3px;
+    }
+
+    /* LIVE BIN CARD */
+    .live-bin-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 3px 18px rgba(0, 0, 0, .1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .live-bin-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #1a5276, #2ecc71);
+    }
+
+    /* BIN VISUAL */
+    .bin-top {
+      height: 14px;
+      background: #2c3e50;
+      border-radius: 5px 5px 0 0;
+      width: calc(100% + 8px);
+      position: relative;
+      left: -4px;
+    }
+
+    .bin-body {
+      border: 4px solid #2c3e50;
+      border-top: none;
+      border-radius: 0 0 24px 24px;
+      position: relative;
+      overflow: hidden;
+      background: #f8f9fa;
+    }
+
+    .bin-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      border-radius: 0 0 20px 20px;
+      transition: height 1.2s cubic-bezier(.4, 0, .2, 1), background-color .8s ease;
+    }
+
+    .bin-pct-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: rgba(255, 255, 255, .95);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, .4);
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* BADGES */
+    .badge-status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    .badge-empty {
+      background: #d5f5e3;
+      color: #1e8449;
+    }
+
+    .badge-half {
+      background: #fef9e7;
+      color: #b7950b;
+    }
+
+    .badge-full {
+      background: #fdecea;
+      color: #c0392b;
+    }
+
+    .badge-collected {
+      background: #e8f4f8;
+      color: #1a5276;
+    }
+
+    /* CARD BOX */
+    .card-box {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .07);
+      overflow: hidden;
+    }
+
+    .card-box-header {
+      padding: 13px 18px;
+      border-bottom: 1px solid #eee;
+      font-weight: 600;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: .92rem;
+    }
+
+    /* TABLE */
+    .table-wrap {
+      max-height: 340px;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .87rem;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #555;
+      font-weight: 600;
+      padding: 10px 14px;
+      text-align: left;
+      position: sticky;
+      top: 0;
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    tr:hover td {
+      background: #f8f9fa;
+    }
+
+    .fill-bar {
+      height: 7px;
+      background: #eee;
+      border-radius: 4px;
+      overflow: hidden;
+      min-width: 70px;
+    }
+
+    .fill-bar-inner {
+      height: 100%;
+      border-radius: 4px;
+      transition: width .6s;
+    }
+
+    /* ALERT BOXES */
+    .alert-full {
+      background: #fdecea;
+      border-left: 4px solid #e74c3c;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 14px;
+      display: none;
+    }
+
+    .alert-half {
+      background: #fef9e7;
+      border-left: 4px solid #f39c12;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 14px;
+      display: none;
+    }
+
+    /* STAT MINI */
+    .stat-mini {
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .07);
+    }
+
+    .stat-mini .val {
+      font-size: 1.9rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .stat-mini .lbl {
+      font-size: .72rem;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 4px;
+    }
+
+    /* LOGIN */
+    #login-screen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #1a5276, #0c2740 50%, #1e8449);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      overflow-y: auto;
+      /* ✅ allow vertical scroll */
+      padding: 30px 0;
+      /* ✅ spacing top-bottom */
+
+    }
+
+    .login-card {
+      /* background: #fff;
+      border-radius: 16px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+      /* ✅ prevents overflow 
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+      */
+      background: #fff;
+      border-radius: 16px;
+      padding: 30px 28px;
+      /* slightly smaller */
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+
+      max-height: 90vh;
+      /* prevent overflow */
+      overflow-y: auto;
+      /* scroll inside card if needed */
+    }
+
+    .login-card {
+      transition: all 0.3s ease;
+    }
+
+    #login-form,
+    #register-form {
+      transition: opacity 0.3s ease;
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 26px;
+    }
+
+    .login-logo .icon {
+      font-size: 3rem;
+      color: var(--secondary);
+    }
+
+    .login-logo h2 {
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 6px;
+    }
+
+    .form-lbl {
+      font-size: .84rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .form-inp {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: .9rem;
+      margin-bottom: 13px;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .form-inp:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 11px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+    }
+
+    .btn-login:hover {
+      background: #154360;
+    }
+
+    .login-err {
+      background: #fdecea;
+      color: #c0392b;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: .82rem;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    /* ===== USERS PAGE FIX ===== */
+    .users-card {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    #section-users {
+      padding: 25px;
+    }
+
+    #section-users .table-wrap {
+      overflow-x: auto;
+      max-height: 600px;
+    }
+
+    #section-users table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    #section-users th,
+    #section-users td {
+      padding: 14px 16px;
+      text-align: left;
+    }
+
+    #section-users th {
+      background: #f4f6f9;
+      font-weight: 600;
+    }
+
+    #section-users tr {
+      border-bottom: 1px solid #eee;
+    }
+
+
+    /* ======= Badge part ====== */
+    .badge-approved {
+      background: #2ecc71;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+    }
+
+    .badge-pending {
+      background: #f39c12;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+    }
+
+    .btn-approve {
+      background: #1a5276;
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: 0.2s ease;
+    }
+
+    .btn-approve:hover {
+      background: #154360;
+    }
+  </style>
+
+  <!----html----->
+
+</head>
+
+<body>
+
+  <!-- ══════ LOGIN ══════ -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="icon"><i class="bi bi-trash2-fill"></i></div>
+        <h2>BinBuddy</h2>
+        <p style="color:#888;font-size:.84rem">Smart Waste Management System</p>
+      </div>
+      <div id="login-err" class="login-err"></div>
+
+      <!-- WRAP EXISTING LOGIN FIELDS -->
+      <div id="login-form">
+        <label class="form-lbl">Email</label>
+        <input class="form-inp" type="email" id="l-email" placeholder="admin@municipal.gov.in" />
+        <label class="form-lbl">Password</label>
+        <input class="form-inp" type="password" id="l-pass" placeholder="••••••••" />
+        <button class="btn-login" onclick="doLogin()"><i class="bi bi-box-arrow-in-right"></i> Login</button>
+        <p style="text-align:center;margin-top:14px;font-size:.82rem">
+          New Municipal Office?
+          <a href="#" onclick="showRegister()" style="color:#1a5276;font-weight:600;text-decoration:none">Register
+            here</a>
+        </p>
+      </div>
+
+      <!-- ADD YOUR REGISTER FORM HERE -->
+      <div id="register-form" style="display:none">
+        <label class="form-lbl">Full Name</label>
+        <input class="form-inp" type="text" id="r-name" required />
+
+        <label class="form-lbl">Email / Phone</label>
+        <input class="form-inp" type="text" id="r-email" required />
+
+        <!-- New Field for Citizens -->
+        <div id="citizen-fields" style="display:none">
+          <label class="form-lbl">Area/Ward</label>
+          <input class="form-inp" type="text" id="r-area" placeholder="e.g. Gandhi Nagar" />
+        </div>
+
+        <label class="form-lbl">Register As</label>
+        <select class="form-inp" id="r-role" onchange="toggleRegFields()">
+          <option value="citizen">Citizen</option>
+          <option value="municipal_office">Municipal Office</option>
+        </select>
+
+        <!-- <label class="form-lbl">Full Name</label>
+        <input class="form-inp" type="text" id="r-name" placeholder="Your Name" />
+
+        <label class="form-lbl">Email</label>
+        <input class="form-inp" type="email" id="r-email" placeholder="your@email.com" />
+
+        <label class="form-lbl">Password</label>
+        <input class="form-inp" type="password" id="r-pass" placeholder="••••••••" />
+
+        # ✅ ADD THIS 
+        <label class="form-lbl">Register As</label>
+        <select class="form-inp" id="r-role">
+          <option value="citizen">Citizen</option>
+          <option value="municipal_office">Municipal Office</option>
+        </select>
+
+        <button class="btn-login" onclick="doRegister()">
+          <i class="bi bi-person-plus-fill"></i> Register
+        </button>
+
+        <p style="text-align:center;margin-top:12px;font-size:.8rem">
+          Already have account?
+          <a href="#" onclick="showLogin()" style="color:#1a5276;font-weight:600;text-decoration:none">
+            Login here
+          </a>
+        </p> -->
+      </div>
+
+      <p id="demo-cred" style="text-align:center;margin-top:12px;font-size:.76rem;color:#bbb">
+        admin@municipal.gov.in / admin123
+      </p>
+    </div>
+  </div>
+
+
+  <!-- ══════ SIDEBAR ══════ -->
+  <div id="sidebar">
+    <div class="brand"><i class="bi bi-trash2-fill"></i> BinBuddy</div>
+    <nav>
+      <a href="#" class="active" onclick="return nav('overview')"> <i class="bi bi-grid-1x2-fill"></i> Overview</a>
+      <a href="#" onclick="return nav('live')"> <i class="bi bi-broadcast"></i> Live Monitor</a>
+      <a href="#" onclick="return nav('map')"> <i class="bi bi-map-fill"></i> Map View</a>
+      <a href="#" onclick="return nav('bins')"> <i class="bi bi-trash-fill"></i> All Bins</a>
+      <a href="#" onclick="return nav('complaints')"><i class="bi bi-megaphone-fill"></i> Complaints</a>
+      <a href="#" onclick="return nav('analytics')"> <i class="bi bi-bar-chart-fill"></i> Analytics</a>
+      <a href="#" class="admin-only" onclick="return nav('users')">
+        <i class="bi bi-people-fill"></i> User Management
+      </a>
+    </nav>
+    <div class="sidebar-footer">BinBuddy v1.0 &copy; 2024<br>Municipal Corporation</div>
+  </div>
+
+
+
+  <!-- ══════ MAIN ══════ -->
+  <div id="main">
+
+    <!-- LIVE STATUS BAR -->
+    <div id="live-bar">
+      <span><span class="live-dot"></span> LIVE</span>
+      <span>📡 <span id="b-code">BIN-W01-001</span></span>
+      <span>🗑️ Fill: <strong id="b-fill">—</strong></span>
+      <span>📏 Dist: <strong id="b-dist">—</strong></span>
+      <span>🔴 Status: <strong id="b-status">—</strong></span>
+      <span style="margin-left:auto;color:rgba(255,255,255,.5)">🕐 <span id="b-time">—</span></span>
+    </div>
+
+    <!-- TOPBAR -->
+    <div id="topbar">
+      <div class="page-title" id="page-title">Dashboard Overview</div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <span id="clock" style="font-size:.81rem;color:#888"></span>
+        <button class="notif-btn"><i class="bi bi-bell-fill"></i><span class="notif-badge"
+            id="notif-n">0</span></button>
+        <div class="user-chip" onclick="logout()">
+          <div class="avatar" id="u-avatar">A</div>
+          <span id="u-name">Admin</span>
+          <i class="bi bi-box-arrow-right" style="color:#bbb;font-size:.9rem"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ OVERVIEW ══ -->
+    <div class="page-section active" id="section-overview">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#d6eaf8;color:#1a5276"><i class="bi bi-trash-fill"></i></div>
+          <div>
+            <div class="kpi-value" id="k-total">—</div>
+            <div class="kpi-label">Total Bins</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#fdecea;color:#c0392b"><i class="bi bi-exclamation-triangle-fill"></i>
+          </div>
+          <div>
+            <div class="kpi-value" id="k-full">—</div>
+            <div class="kpi-label">Full Bins 🚨</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#fef9e7;color:#b7950b"><i class="bi bi-hourglass-split"></i></div>
+          <div>
+            <div class="kpi-value" id="k-half">—</div>
+            <div class="kpi-label">Half Full</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#d5f5e3;color:#1e8449"><i class="bi bi-check-circle-fill"></i></div>
+          <div>
+            <div class="kpi-value" id="k-empty">—</div>
+            <div class="kpi-label">Empty</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#d0f0ea;color:#117a65"><i class="bi bi-truck"></i></div>
+          <div>
+            <div class="kpi-value" id="k-coll">—</div>
+            <div class="kpi-label">Collected Today</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#f4ecf7;color:#8e44ad"><i class="bi bi-megaphone-fill"></i></div>
+          <div>
+            <div class="kpi-value" id="k-comp">—</div>
+            <div class="kpi-label">Open Complaints</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <!-- MINI LIVE WIDGET -->
+        <div class="col-lg-4">
+          <div class="live-bin-card" style="cursor:pointer" onclick="nav('live')">
+            <div style="font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">
+              <span class="live-dot" style="animation:blink 1.2s infinite"></span> Hardware Live Feed
+            </div>
+            <div style="font-weight:700;color:var(--primary);font-size:1rem" id="ov-code">BIN-W01-001</div>
+            <div style="font-size:.8rem;color:#999;margin-bottom:18px" id="ov-loc">Gandhi Chowk</div>
+
+            <!-- BIN GRAPHIC -->
+            <div class="bin-top" style="width:118px;margin:0 auto;position:relative;left:0"></div>
+            <div class="bin-body" style="width:110px;height:160px;margin:0 auto 16px;">
+              <div class="bin-fill" id="ov-fill-el" style="height:0%;background:#2ecc71"></div>
+              <div class="bin-pct-label" id="ov-pct-inside" style="font-size:1.1rem">0%</div>
+            </div>
+
+            <div style="font-size:2.4rem;font-weight:800;color:#2ecc71;line-height:1" id="ov-pct">0%</div>
+            <div style="font-size:.85rem;color:#888;margin:5px 0" id="ov-dist">Distance: — cm</div>
+            <span class="badge-status badge-empty" id="ov-badge">EMPTY</span>
+            <div style="margin-top:14px;font-size:.74rem;color:#bbb" id="ov-time">Last update: —</div>
+            <div style="margin-top:10px;font-size:.78rem;color:var(--primary)">Click to open full monitor →</div>
+          </div>
+        </div>
+
+        <!-- MAP -->
+        <div class="col-lg-8">
+          <div class="card-box">
+            <div class="card-box-header">
+              <span><i class="bi bi-map"></i> Bin Location Map</span>
+              <span style="font-size:.75rem;color:#2ecc71"><span class="live-dot"></span>Auto-refresh 1s</span>
+            </div>
+            <div id="map" style="height:370px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ LIVE MONITOR (Full Page) ══ -->
+    <div class="page-section" id="section-live">
+      <div class="row g-4">
+
+        <!-- BIG BIN WIDGET -->
+        <div class="col-xl-4 col-lg-5">
+          <div class="live-bin-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px">
+              <div>
+                <div
+                  style="font-size:.7rem;color:#2ecc71;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">
+                  <span class="live-dot"></span> Live Hardware Feed
+                </div>
+                <div style="font-size:1.15rem;font-weight:700;color:var(--primary)" id="lv-code">BIN-W01-001</div>
+                <div style="font-size:.82rem;color:#888" id="lv-loc">Gandhi Chowk, Ward 1</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:.7rem;color:#aaa">Battery</div>
+                <div style="font-size:1.1rem;font-weight:700" id="lv-bat">—</div>
+              </div>
+            </div>
+
+            <!-- BIG BIN GRAPHIC -->
+            <div class="bin-top" style="width:188px;margin:0 auto;position:relative;left:0"></div>
+            <div class="bin-body" style="width:180px;height:260px;margin:0 auto 20px;">
+              <div class="bin-fill" id="lv-fill-el" style="height:0%;background:#2ecc71;border-radius:0 0 20px 20px;">
+              </div>
+              <div class="bin-pct-label" id="lv-pct-inside" style="font-size:1.6rem">—</div>
+            </div>
+
+            <div style="font-size:3rem;font-weight:900;line-height:1;transition:color .5s" id="lv-pct">0%</div>
+            <div style="font-size:1rem;color:#666;margin:8px 0">
+              <i class="bi bi-rulers"></i> Distance: <strong id="lv-dist">— cm</strong>
+            </div>
+            <span class="badge-status badge-empty" id="lv-badge" style="font-size:.9rem;padding:6px 20px">EMPTY</span>
+
+            <div
+              style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid #f0f0f0;text-align:center">
+              <div>
+                <div style="font-size:.68rem;color:#bbb;text-transform:uppercase">Zone</div>
+                <div style="font-weight:600;font-size:.88rem" id="lv-zone">—</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;color:#bbb;text-transform:uppercase">Device</div>
+                <div style="font-weight:600;font-size:.88rem" id="lv-dev">ESP-001</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;color:#bbb;text-transform:uppercase">Bin Depth</div>
+                <div style="font-weight:600;font-size:.88rem">22 cm</div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px;font-size:.75rem;color:#bbb" id="lv-time">Last update: —</div>
+
+            <!-- ALERTS -->
+            <div id="lv-alert-full" class="alert-full">
+              <strong style="color:#c0392b"><i class="bi bi-exclamation-triangle-fill"></i> BIN IS FULL!</strong>
+              <div style="font-size:.84rem;color:#c0392b;margin-top:3px">Dispatch collection vehicle immediately.</div>
+            </div>
+            <div id="lv-alert-half" class="alert-half">
+              <strong style="color:#b7950b"><i class="bi bi-exclamation-circle-fill"></i> BIN IS HALF FULL</strong>
+              <div style="font-size:.84rem;color:#b7950b;margin-top:3px">Schedule collection soon.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHART + STATS -->
+        <div class="col-xl-8 col-lg-7">
+
+          <!-- LIVE CHART -->
+          <div class="card-box mb-4">
+            <div class="card-box-header">
+              <span><i class="bi bi-activity"></i> Fill Level History (last 20 readings)</span>
+              <span style="font-size:.74rem;color:#2ecc71"><span class="live-dot"></span>Updating every 3s</span>
+            </div>
+            <div style="padding:16px 16px 8px">
+              <canvas id="liveChart" height="110"></canvas>
+            </div>
+          </div>
+
+          <!-- STAT MINI CARDS -->
+          <div class="row g-3">
+            <div class="col-6 col-md-3">
+              <div class="stat-mini">
+                <div class="lbl">Current Fill</div>
+                <div class="val" id="s-fill" style="color:var(--primary)">—%</div>
+                <div style="height:5px;background:#eee;border-radius:3px;margin-top:8px;overflow:hidden">
+                  <div id="s-fill-bar"
+                    style="height:100%;background:#2ecc71;width:0%;border-radius:3px;transition:width .6s,background .5s">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-mini">
+                <div class="lbl">Distance</div>
+                <div class="val" id="s-dist" style="color:var(--primary)">—</div>
+                <div style="font-size:.72rem;color:#bbb;margin-top:6px">cm from sensor</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-mini">
+                <div class="lbl">Peak Today</div>
+                <div class="val" id="s-peak" style="color:#e74c3c">—%</div>
+                <div style="font-size:.72rem;color:#bbb;margin-top:6px">max fill level</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-mini">
+                <div class="lbl">Readings</div>
+                <div class="val" id="s-reads" style="color:var(--secondary)">0</div>
+                <div style="font-size:.72rem;color:#bbb;margin-top:6px">since page load</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MAP ══ -->
+    <div class="page-section" id="section-map">
+      <div class="card-box">
+        <div class="card-box-header">
+          <span><i class="bi bi-geo-alt-fill"></i> Live Bin Map</span>
+          <div style="font-size:.78rem;display:flex;gap:14px;align-items:center">
+            <span><span style="width:10px;height:10px;background:#2ecc71;border-radius:50%;display:inline-block"></span>
+              Empty</span>
+            <span><span style="width:10px;height:10px;background:#f39c12;border-radius:50%;display:inline-block"></span>
+              Half</span>
+            <span><span style="width:10px;height:10px;background:#e74c3c;border-radius:50%;display:inline-block"></span>
+              Full</span>
+          </div>
+        </div>
+        <div id="map-big" style="height:calc(100vh - 180px)"></div>
+      </div>
+    </div>
+
+    <!-- ══ ALL BINS ══ -->
+    <div class="page-section" id="section-bins">
+      <div class="card-box">
+        <div class="card-box-header">
+          <span><i class="bi bi-trash-fill"></i> All Bins</span>
+          <button class="btn btn-sm btn-outline-success" onclick="loadBinsTable()"><i class="bi bi-arrow-clockwise"></i>
+            Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Bin Code</th>
+                <th>Location</th>
+                <th>GPS Coordinates</th>
+                <th>Fill Level</th>
+                <th>Status</th>
+                <th>Battery</th>
+                <th>Last Update</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="bins-tbody">
+              <tr>
+                <td colspan="7" style="text-align:center;padding:30px;color:#aaa">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ COMPLAINTS ══ -->
+    <div class="page-section" id="section-complaints">
+      <div class="card-box">
+        <div class="card-box-header">
+          <span><i class="bi bi-megaphone-fill"></i> Citizen Complaints</span>
+          <span class="badge bg-danger" id="comp-count">0 Open</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="comp-tbody">
+              <tr>
+                <td colspan="6" style="text-align:center;padding:30px;color:#aaa">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ANALYTICS ══ -->
+    <div class="page-section" id="section-analytics">
+      <div class="row g-4">
+        <div class="col-md-5">
+          <div style="background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+            <h6 style="color:var(--primary);margin-bottom:14px"><i class="bi bi-pie-chart-fill"></i> Bin Status</h6>
+            <canvas id="pieChart" height="220"></canvas>
+          </div>
+        </div>
+        <div class="col-md-7">
+          <div style="background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+            <h6 style="color:var(--primary);margin-bottom:14px"><i class="bi bi-bar-chart-fill"></i> Daily Collections
+            </h6><canvas id="barChart" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ USERS (Admin Only) ══ -->
+    <div class="page-section" id="section-users">
+      <div class="card-box users-card">
+        <div class="card-box-header">
+          <span><i class="bi bi-people-fill"></i> User Approvals</span>
+          <button class="btn btn-sm btn-outline-success" onclick="loadUsers()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr>
+                <td colspan="5" style="text-align:center;padding:30px;color:#aaa">
+                  Loading...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>
+
+    // ════════════════════════════════════════════════
+    // CONFIG  ← only thing you might need to change
+    // ════════════════════════════════════════════════
+    const API_BASE = '/api';  // Use relative path instead of hardcoded localhost
+    const LIVE_BIN = 'BIN-W01-001';  // your hardware bin code
+    const REFRESH_MS = 1000;           // poll every 1 seconds
+
+    // ────────────────────────────────────────────────
+    let TOKEN = localStorage.getItem('bb_token');
+    let USER = JSON.parse(localStorage.getItem('bb_user') || '{}');
+    let liveChart = null;
+    let mapSm = null, mapBig = null, markerSm = null, markerBig = null;
+    let lastTrackedLat = null, lastTrackedLng = null;
+    let histLabels = [], histValues = [];
+    let peakToday = 0, readCount = 0;
+
+    // ════════════════════════════════════════════════
+    // LOGIN
+    // ════════════════════════════════════════════════
+    async function doLogin() {
+      const email = document.getElementById('l-email').value.trim();
+      const pass = document.getElementById('l-pass').value;
+      const err = document.getElementById('login-err');
+      err.style.display = 'none';
+
+      const res = await fetch(`/api/auth/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass })
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        err.textContent = d.error || 'Login failed';
+        err.style.display = 'block';
+        return;
+      }
+
+      TOKEN = d.access_token;
+      USER = d.user;
+      localStorage.setItem('bb_role', USER.role);
+      localStorage.setItem('bb_token', TOKEN);
+      localStorage.setItem('bb_user', JSON.stringify(USER));
+      console.log('✅ LOGIN SUCCESS - Token saved to localStorage');
+      boot();
+    }
+
+    document.getElementById('l-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    if (TOKEN && TOKEN !== 'demo') {
+      console.log('✅ TOKEN FOUND IN LOCALSTORAGE - Booting with real data');
+      boot();
+    }
+
+    function logout() { localStorage.clear(); location.reload(); }
+
+    // ════════════════════════════════════════════════
+    // BOOT
+    // ════════════════════════════════════════════════
+    function boot() {
+      applyRoleUI(USER.role);
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('u-name').textContent = USER.name || 'Admin';
+      document.getElementById('u-avatar').textContent = (USER.name || 'A')[0].toUpperCase();
+      startClock();
+      loadLeaflet(() => {
+        loadKPIs();
+        setInterval(refreshLiveBin, REFRESH_MS);
+        setInterval(loadAllBinsOnMap, 5000);  // Refresh map markers every 5 seconds
+        refreshLiveBin(); // immediate first call
+      });
+    }
+
+    function startClock() {
+      setInterval(() => {
+        document.getElementById('clock').textContent = new Date().toLocaleString('en-IN', { hour12: true });
+      }, 1000);
+    }
+
+    // ════════════════════════════════════════════════
+    // NAVIGATION
+    // ════════════════════════════════════════════════
+    const TITLES = {
+      overview: 'Dashboard Overview',
+      live: '🔴 Live Bin Monitor',
+      map: 'Map View',
+      bins: 'All Bins',
+      complaints: 'Complaints',
+      analytics: 'Analytics',
+      users: 'User Management'
+    };
+    let liveChartReady = false;
+
+    function nav(name) {
+      document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('#sidebar nav a').forEach(a => a.classList.remove('active'));
+      document.getElementById('section-' + name).classList.add('active');
+      document.querySelectorAll('#sidebar nav a').forEach(a => {
+        if (a.getAttribute('onclick') && a.getAttribute('onclick').includes(`'${name}'`))
+          a.classList.add('active');
+      });
+      document.getElementById('page-title').textContent = TITLES[name] || name;
+
+      if (name === 'live' && !liveChartReady) { initLiveChart(); liveChartReady = true; }
+      if (name === 'bins') loadBinsTable();
+      if (name === 'complaints') loadComplaints();
+      if (name === 'analytics') loadAnalytics();
+      if (name === 'map' && mapBig) {
+        setTimeout(() => {
+          mapBig.invalidateSize();
+          mapBig.setView(mapBig.getCenter());
+        }, 200);
+      }
+      if (name === 'overview' && mapSm) {
+        setTimeout(() => {
+          mapSm.invalidateSize();
+          mapSm.setView(mapSm.getCenter());
+        }, 200);
+      }
+      if (name === 'users') loadUsers();
+      return false;
+    }
+
+    // ════════════════════════════════════════════════
+    // API HELPER
+    // ════════════════════════════════════════════════
+    async function api(path) {
+      try {
+        const h = { 'Content-Type': 'application/json' };
+        if (TOKEN && TOKEN !== 'demo') h['Authorization'] = `Bearer ${TOKEN}`;
+        console.log('DEBUG: API call to', path, 'with headers:', h);
+        const r = await fetch(API_BASE + path, { headers: h });
+        console.log('DEBUG: Response status:', r.status);
+        if (r.status === 401) {
+          console.error('ERROR: 401 Unauthorized - logging out');
+          logout();
+          return null;
+        }
+        const data = await r.json();
+        console.log('DEBUG: Response data:', data);
+        return data;
+      } catch (e) {
+        console.error('ERROR: API call failed:', e);
+        return null;
+      }
+    }
+
+    // ════════════════════════════════════════════════
+    // ★ CORE: REFRESH LIVE BIN DATA ★
+    // Calls Flask API → Flask already updated DB from MQTT
+    // So this always gets the freshest sensor reading
+    // ════════════════════════════════════════════════
+
+
+    // 1. Dynamic Registration Fields
+    function toggleRegFields() {
+      const role = document.getElementById('r-role').value;
+      document.getElementById('citizen-fields').style.display = (role === 'citizen') ? 'block' : 'none';
+    }
+    let currentLiveBinCode = localStorage.getItem('selected_bin') || 'BIN-W01-001';
+
+    function hasValidCoords(lat, lng) {
+      const lt = Number(lat), lg = Number(lng);
+      return Number.isFinite(lt) && Number.isFinite(lg) && !(lt === 0 && lg === 0);
+    }
+
+    async function refreshLiveBin() {
+      let bin;
+
+      // Always fetch real data from database (MQTT handler already wrote it)
+      console.log('📡 Fetching real bin data from /api/bins/');
+      const all = await api('/bins/');
+      if (!all) {
+        console.error('❌ Failed to fetch bins - API error');
+        return;
+      }
+
+      bin = all.find(b => b.bin_code === currentLiveBinCode); if (!bin) {
+        console.warn('❌ Bin not found:', currentLiveBinCode);
+        return;
+      }
+
+      console.log('✅ Fetched bin:', bin);
+
+      const fill = parseFloat(bin.fill_level || 0);
+      const fillStr = fill.toFixed(1) + '%';
+      // Calculate distance from fill level (bin is 22cm deep)
+      const dist = bin.distance_cm != null
+        ? parseFloat(bin.distance_cm).toFixed(1)
+        : (22 * (1 - fill / 100)).toFixed(1);
+      const distStr = dist + ' cm';
+      const status = bin.status || 'empty';
+      const color = fill >= 80 ? '#e74c3c' : fill >= 50 ? '#f39c12' : '#2ecc71';
+      const now = bin.last_updated ? new Date(bin.last_updated).toLocaleTimeString('en-IN') : new Date().toLocaleTimeString('en-IN');
+
+      // ── TOP STATUS BAR ──────────────────────────────
+      document.getElementById('b-fill').textContent = fillStr;
+      document.getElementById('b-dist').textContent = distStr;
+      document.getElementById('b-status').textContent = status.toUpperCase();
+      document.getElementById('b-time').textContent = now;
+
+      // ── OVERVIEW MINI WIDGET ────────────────────────
+      setText('ov-pct', fillStr, color);
+      setText('ov-pct-inside', fillStr);
+      document.getElementById('ov-dist').textContent = 'Distance: ' + distStr;
+      document.getElementById('ov-fill-el').style.height = fill + '%';
+      document.getElementById('ov-fill-el').style.background = color;
+      document.getElementById('ov-time').textContent = 'Last update: ' + now;
+      setStatusBadge('ov-badge', status);
+
+      // ── LIVE MONITOR PAGE ───────────────────────────
+      setText('lv-pct', fillStr, color);
+      setText('lv-pct-inside', fillStr);
+      document.getElementById('lv-fill-el').style.height = fill + '%';
+      document.getElementById('lv-fill-el').style.background = color;
+      document.getElementById('lv-dist').textContent = distStr;
+      document.getElementById('lv-bat').textContent = (bin.battery_level || 100) + '%';
+      document.getElementById('lv-dev').textContent = bin.device_id || 'ESP-001';
+      document.getElementById('lv-zone').textContent = 'Ward ' + (bin.zone_id || 1);
+      document.getElementById('lv-time').textContent = 'Last update: ' + now;
+      setStatusBadge('lv-badge', status);
+
+      // Alerts
+      document.getElementById('lv-alert-full').style.display = fill >= 90 ? 'block' : 'none';
+      document.getElementById('lv-alert-half').style.display = (fill >= 50 && fill < 90) ? 'block' : 'none';
+
+      // ── STATS ───────────────────────────────────────
+      document.getElementById('s-fill').textContent = fillStr;
+      document.getElementById('s-dist').textContent = distStr;
+      document.getElementById('s-fill-bar').style.width = fill + '%';
+      document.getElementById('s-fill-bar').style.background = color;
+      if (fill > peakToday) { peakToday = fill; document.getElementById('s-peak').textContent = fill.toFixed(1) + '%'; }
+      document.getElementById('s-reads').textContent = ++readCount;
+
+      // ── HISTORY CHART ───────────────────────────────
+      histLabels.push(now);
+      histValues.push(parseFloat(fill.toFixed(1)));
+      if (histLabels.length > 20) { histLabels.shift(); histValues.shift(); }
+      if (liveChart) {
+        liveChart.data.labels = [...histLabels];
+        liveChart.data.datasets[0].data = [...histValues];
+        liveChart.data.datasets[0].pointBackgroundColor = histValues.map(v => v >= 90 ? '#e74c3c' : v >= 50 ? '#f39c12' : '#2ecc71');
+        liveChart.data.datasets[0].borderColor = color;
+        liveChart.update('none');
+      }
+
+      // ── MAP MARKER ──────────────────────────────────
+      const hasCoords = hasValidCoords(bin.latitude, bin.longitude);
+      const lat = hasCoords ? parseFloat(bin.latitude) : 20.005;
+      const lng = hasCoords ? parseFloat(bin.longitude) : 73.767;
+      updateMapMarker(lat, lng, fill, status, bin, color, hasCoords);
+
+      // Notification badge
+      document.getElementById('notif-n').textContent = fill >= 90 ? '1' : '0';
+    }
+
+    function setText(id, text, color) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      if (color) el.style.color = color;
+    }
+
+    function setStatusBadge(id, status) {
+      const el = document.getElementById(id);
+      el.className = 'badge-status badge-' + status;
+      el.textContent = status.toUpperCase();
+    }
+
+    // ════════════════════════════════════════════════
+    // LEAFLET MAP
+    // ════════════════════════════════════════════════
+    let allBinMarkers = [];  // Store all bin markers for map
+    
+    function loadLeaflet(cb) {
+      if (window.L && mapSm && mapBig) return;  /// DO NOT Recreate Map Every Time
+      const link = document.createElement('link');
+      link.rel = 'stylesheet'; link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      s.onload = () => {
+        mapSm = L.map('map').setView([20.005, 73.767], 15);
+        mapBig = L.map('map-big').setView([20.005, 73.767], 15);
+        [mapSm, mapBig].forEach(m =>
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(m)
+        );
+        loadAllBinsOnMap();  // Load all bins on map
+        if (cb) cb();
+      };
+      document.head.appendChild(s);
+    }
+
+    // Load all bins and display them on the map
+    async function loadAllBinsOnMap() {
+      const bins = await api('/bins/');
+      if (!bins) return;
+      
+      // Clear existing markers
+      allBinMarkers.forEach(m => {
+        mapSm.removeLayer(m);
+        mapBig.removeLayer(m);
+      });
+      allBinMarkers = [];
+      
+      bins.forEach(bin => {
+        const hasCoords = hasValidCoords(bin.latitude, bin.longitude);
+        if (!hasCoords) return;  // Skip bins without valid GPS
+        
+        const lat = parseFloat(bin.latitude);
+        const lng = parseFloat(bin.longitude);
+        const fill = parseFloat(bin.fill_level || 0);
+        const color = fill >= 90 ? '#e74c3c' : fill >= 50 ? '#f39c12' : '#2ecc71';
+        
+        const icon = L.divIcon({
+          html: `<div style="width:24px;height:24px;background:${color};border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.35)"></div>`,
+          iconSize: [24, 24], iconAnchor: [12, 12]
+        });
+        
+        const popupContent = `<b style="color:#1a5276">${bin.bin_code}</b><br>
+    <small style="color:#666">📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}</small><br>
+    ${bin.location_name}<br>
+    Fill: <b style="color:${color}">${fill.toFixed(1)}%</b><br>
+    Status: <b>${bin.status?.toUpperCase() || 'UNKNOWN'}</b><br>
+    Battery: ${bin.battery_level?.toFixed(1) || '—'}%<br>
+    <small style="color:#aaa">Updated: ${new Date(bin.last_updated || Date.now()).toLocaleTimeString('en-IN')}</small>`;
+        
+        const marker = L.marker([lat, lng], { icon }).addTo(mapSm).addTo(mapBig).bindPopup(popupContent);
+        allBinMarkers.push(marker);
+      });
+    }
+
+    function updateMapMarker(lat, lng, fill, status, bin, color, hasCoords = true) {
+      if (!window.L || !mapSm) return;
+      const icon = L.divIcon({
+        html: `<div style="width:24px;height:24px;background:${color};border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.35)"></div>`,
+        iconSize: [24, 24], iconAnchor: [12, 12]
+      });
+      const popup = `<b style="color:#1a5276">${bin.bin_code}</b><br>
+    ${bin.location_name}<br>
+    Fill: <b style="color:${color}">${parseFloat(fill).toFixed(1)}%</b><br>
+    Status: <b>${status.toUpperCase()}</b><br>
+    <small style="color:#aaa">Updated: ${new Date(bin.last_updated || Date.now()).toLocaleTimeString('en-IN')}</small>`;
+
+      //////Update of Map
+      // if (markerSm) { markerSm.remove(); markerBig.remove(); }
+      if (markerSm) {
+        mapSm.removeLayer(markerSm);
+      }
+      if (markerBig) {
+        mapBig.removeLayer(markerBig);
+      }
+      markerSm = L.marker([lat, lng], { icon }).addTo(mapSm).bindPopup(popup);
+      markerBig = L.marker([lat, lng], { icon }).addTo(mapBig).bindPopup(popup);
+      if (hasCoords) {
+        const movedMeters = (lastTrackedLat != null && lastTrackedLng != null)
+          ? mapSm.distance([lastTrackedLat, lastTrackedLng], [lat, lng])
+          : Infinity;
+        if (movedMeters > 5) {
+          mapSm.panTo([lat, lng], { animate: true, duration: 0.6 });
+          if (document.getElementById('section-map').classList.contains('active')) {
+            mapBig.panTo([lat, lng], { animate: true, duration: 0.6 });
+          }
+        }
+        lastTrackedLat = lat;
+        lastTrackedLng = lng;
+      }
+      if (fill >= 90) markerSm.openPopup();
+    }
+
+    // ════════════════════════════════════════════════
+    // LIVE CHART
+    // ════════════════════════════════════════════════
+    function initLiveChart() {
+      const ctx = document.getElementById('liveChart').getContext('2d');
+      liveChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [...histLabels],
+          datasets: [{
+            label: 'Fill Level %',
+            data: [...histValues],
+            borderColor: '#1a5276',
+            backgroundColor: 'rgba(26,82,118,0.07)',
+            borderWidth: 2.5,
+            tension: 0.4,
+            fill: true,
+            pointRadius: 5,
+            pointBackgroundColor: []
+          }]
+        },
+        options: {
+          responsive: true,
+          animation: false,
+          scales: {
+            y: { min: 0, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f0f0f0' } },
+            x: { ticks: { maxTicksLimit: 5, maxRotation: 0 }, grid: { display: false } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    // ════════════════════════════════════════════════
+    // KPI CARDS
+    // ════════════════════════════════════════════════
+    async function loadKPIs() {
+      const s = await api('/reports/summary');
+      if (!s) {
+        console.error('❌ Failed to load KPIs');
+        return;
+      }
+      document.getElementById('k-total').textContent = s.total_bins;
+      document.getElementById('k-full').textContent = s.full_bins;
+      document.getElementById('k-half').textContent = s.half_bins;
+      document.getElementById('k-empty').textContent = s.empty_bins;
+      document.getElementById('k-coll').textContent = s.collected_today;
+      document.getElementById('k-comp').textContent = s.open_complaints;
+    }
+
+    // ════════════════════════════════════════════════
+    // BINS TABLE
+    // ════════════════════════════════════════════════
+    async function loadBinsTable() {
+      const bins = await api('/bins/');
+      if (!bins) return;
+
+      document.getElementById('bins-tbody').innerHTML = bins.map(b => {
+        const f = parseFloat(b.fill_level || 0);
+        const c = f >= 90 ? '#e74c3c' : f >= 50 ? '#f39c12' : '#2ecc71';
+        const hasCoords = hasValidCoords(b.latitude, b.longitude);
+        const gpsText = hasCoords ? `${parseFloat(b.latitude).toFixed(6)}, ${parseFloat(b.longitude).toFixed(6)}` : '—';
+
+        // Check if this is the currently monitored bin
+        const isMonitoring = b.bin_code === currentLiveBinCode;
+
+        return `<tr>
+      <td>
+        <strong>${b.bin_code}</strong>
+        ${isMonitoring ? ' <span class="badge bg-success" style="font-size:.63rem">LIVE</span>' : ''}
+      </td>
+      <td>${b.location_name || '—'}</td>
+      <td><small style="font-family:monospace;color:#666">${gpsText}</small></td>
+      <td>
+        <div class="fill-bar"><div class="fill-bar-inner" style="width:${f}%;background:${c}"></div></div>
+        <span style="font-size:.77rem">${f.toFixed(1)}%</span>
+      </td>
+      <td><span class="badge-status badge-${b.status}">${b.status.toUpperCase()}</span></td>
+      <td>${b.battery_level ? b.battery_level.toFixed(1) + '%' : '—'}</td>
+      <td><small>${new Date(b.last_updated || Date.now()).toLocaleString('en-IN')}</small></td>
+      <td>
+        <button class="btn btn-sm ${isMonitoring ? 'btn-secondary' : 'btn-primary'}" 
+                onclick="watchBin('${b.bin_code}')" 
+                ${isMonitoring ? 'disabled' : ''} style="font-size:.75rem">
+          ${isMonitoring ? 'Monitoring' : 'Monitor'}
+        </button>
+      </td>
+    </tr>`;
+      }).join('');
+    }
+
+    // Added this helper function to handle the switch
+    function watchBin(code) {
+      currentLiveBinCode = code;
+      localStorage.setItem('selected_bin', code);
+      alert("Now monitoring: " + code);
+      nav('live'); // Switch view to live monitor
+      refreshLiveBin(); // Update data immediately
+    }
+    // ════════════════════════════════════════════════
+    // COMPLAINTS
+    // ════════════════════════════════════════════════
+    async function loadComplaints() {
+      const items = (await api('/complaints/')) || [];
+      document.getElementById('comp-count').textContent = items.filter(c => c.status === 'open').length + ' Open';
+      document.getElementById('comp-tbody').innerHTML = items.length
+        ? items.map(c => `<tr>
+        <td>${c.id}</td><td>${c.category}</td>
+        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.description}</td>
+        <td>${c.priority}</td>
+        <td><span class="badge-status badge-${c.status}">${c.status.toUpperCase()}</span></td>
+        <td style="font-size:.77rem">${new Date(c.created_at).toLocaleDateString('en-IN')}</td>
+      </tr>`).join('')
+        : '<tr><td colspan="6" style="text-align:center;padding:28px;color:#bbb">No complaints</td></tr>';
+    }
+
+    // ════════════════════════════════════════════════
+    // ANALYTICS
+    // ════════════════════════════════════════════════
+    let pieInst = null, barInst = null;
+    async function loadAnalytics() {
+      const s = (await api('/reports/summary')) || {};
+      const daily = (await api('/reports/collections-daily')) || [];
+
+      if (pieInst) pieInst.destroy();
+      pieInst = new Chart(document.getElementById('pieChart'), {
+        type: 'doughnut',
+        data: { labels: ['Empty', 'Half', 'Full'], datasets: [{ data: [s.empty_bins || 0, s.half_bins || 0, s.full_bins || 0], backgroundColor: ['#2ecc71', '#f39c12', '#e74c3c'], borderWidth: 2 }] },
+        options: { plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
+      });
+
+      if (barInst) barInst.destroy();
+      barInst = new Chart(document.getElementById('barChart'), {
+        type: 'bar',
+        data: { labels: daily.map(d => d.date.slice(5)), datasets: [{ label: 'Collections', data: daily.map(d => d.count), backgroundColor: '#1a5276', borderRadius: 6 }] },
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+      });
+    }
+
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Login to Register Swithch
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    /* function showRegister() {
+      document.getElementById('l-email').style.display = 'none';
+      document.getElementById('l-pass').style.display = 'none';
+      document.querySelector('.btn-login').style.display = 'none';
+      document.getElementById('register-form').style.display = 'block';
+    }
+
+    function showLogin() {
+      document.getElementById('l-email').style.display = 'block';
+      document.getElementById('l-pass').style.display = 'block';
+      document.querySelector('.btn-login').style.display = 'block';
+      document.getElementById('register-form').style.display = 'none';
+    }*/
+    function showRegister() {
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('register-form').style.display = 'block';
+      document.getElementById('demo-cred').style.display = 'none';
+    }
+
+    function showLogin() {
+      document.getElementById('login-form').style.display = 'block';
+      document.getElementById('register-form').style.display = 'none';
+      document.getElementById('demo-cred').style.display = 'block';
+    }
+
+    // async function doRegister() {
+    //   const name  = document.getElementById('r-name').value.trim();
+    //   const email = document.getElementById('r-email').value.trim();
+    //   const pass  = document.getElementById('r-pass').value;
+
+    //   const res = await fetch(`/api/auth/register`, {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({
+    //       name: name,
+    //       email: email,
+    //       password: pass,
+    //       role: 'admin'
+    //     })
+    //   });
+
+    //   const data = await res.json();
+
+    //   if (!res.ok) {
+    //     alert(data.error || "Registration failed");
+    //     return;
+    //   }
+
+    //   alert("✅ Registration successful! Please login.");
+    //   showLogin();
+    // }
+
+    /////New 1 doRegister()
+    // async function doRegister() {
+    //   const name = document.getElementById('r-name').value.trim();
+    //   const email = document.getElementById('r-email').value.trim();
+    //   const pass = document.getElementById('r-pass').value;
+    //   let role = document.getElementById('r-role').value;
+
+    //   // FIX: Match Backend Role Naming
+    //   if (role === 'municipal_office') {
+    //     role = 'municipal_corporation';
+    //   }
+
+    //   if (!name || !email || !pass) {
+    //     alert("All fields are required");
+    //     return;
+    //   }
+
+    //   // FIX: Include missing fields required by backend auth.py
+    //   const payload = {
+    //     name: name,
+    //     email: email, // Backend uses this for Officer ID or Email
+    //     password: pass,
+    //     role: role,
+    //     // Add these for Citizen roles to prevent 400 errors
+    //     phone: "0000000000",
+    //     area: "General Ward",
+    //     municipal_corporation: "City Council",
+    //     // For Municipal roles
+    //     city: "City Center",
+    //     officer_id: email
+    //   };
+
+    //   const res = await fetch('/api/auth/register', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(payload)
+    //   });
+
+    //   const data = await res.json();
+
+    //   if (!res.ok) {
+    //     alert(data.error || "Registration failed");
+    //     return;
+    //   }
+
+    //   if (role === 'municipal_corporation') {
+    //     alert("✅ Registered successfully.\nPlease wait for admin approval before logging in.");
+    //   } else {
+    //     alert("✅ Registration successful! You can login now.");
+    //   }
+
+    //   showLogin();
+    // }
+
+    ///// New 2 doRegister()
+
+    async function doRegister() {
+      const name = document.getElementById('r-name').value.trim();
+      const email = document.getElementById('r-email').value.trim();
+      const pass = document.getElementById('r-pass').value;
+      const role = document.getElementById('r-role').value; // Matches DB: 'citizen' or 'municipal_office'
+
+      if (!name || !email || !pass) {
+        alert("All fields are required");
+        return;
+      }
+
+      // Prepare payload to match what your register.py functions expect
+      const payload = {
+        name: name,
+        email: email,
+        password: pass,
+        role: role,
+        phone: email,           // Required for register_citizen
+        area: "General Ward",    // Required for register_citizen
+        municipal_corporation: "City Council", // Required for register_citizen
+        city: "Default City",    // Required for register_municipal_corporation
+        officer_id: email        // Required for register_municipal_corporation
+      };
+
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Registration failed");
+        return;
+      }
+
+      if (role === 'municipal_office') {
+        alert("✅ Registered successfully.\nYour account is pending Admin approval.");
+      } else {
+        alert("✅ Registration successful! Please login.");
+      }
+      showLogin();
+    }
+
+    function applyRoleUI(role) {
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.display = 'none';
+      });
+
+      if (role === 'admin') {
+        document.querySelectorAll('.admin-only').forEach(el => {
+          el.style.display = 'block';
+        });
+      }
+
+      if (role !== 'admin') {
+        const usersSection = document.getElementById('section-users');
+        if (usersSection) usersSection.remove();
+      }
+    }
+
+    async function loadUsers() {
+      const users = await api('/auth/users');
+      if (!users) return;
+
+      document.getElementById('users-tbody').innerHTML = users.map(u => {
+        const status = u.is_approved
+          ? '<span class="badge-status badge-approved" style="background:#2ecc71; color:white; padding:4px 8px; border-radius:12px;">Approved</span>'
+          : '<span class="badge-status badge-pending" style="background:#f39c12; color:white; padding:4px 8px; border-radius:12px;">Pending</span>';
+
+        const approveBtn = (!u.is_approved && u.role === 'municipal_office')
+          ? `<button class="btn btn-sm btn-outline-primary" onclick="approveUser(${u.id})">Approve</button>`
+          : '-';
+
+        return `
+          <tr>
+            <td>${u.name}</td>
+            <td>${u.email}</td>
+            <td>${u.role}</td>
+            <td>${status}</td>
+            <td>${approveBtn}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function approveUser(userId) {
+      if (!confirm("Approve this municipal office?")) return;
+      const res = await fetch(`/api/auth/approve/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Approval failed");
+        return;
+      }
+      alert("✅ User approved successfully");
+      loadUsers();
+    }
+  </script>
+</body>
+
+</html>

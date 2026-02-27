@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BinBuddy – Municipal Smart Waste Dashboard</title>
+
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" />
+
+  <style>
+    :root {
+      --primary:   #1a5276;
+      --secondary: #1e8449;
+      --accent:    #117a65;
+      --light-bg:  #f0f4f8;
+      --sidebar-w: 250px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--light-bg); display: flex; min-height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    #sidebar {
+      width: var(--sidebar-w);
+      background: var(--primary);
+      color: #fff;
+      position: fixed;
+      top: 0; left: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      transition: transform 0.3s;
+    }
+    #sidebar .brand {
+      padding: 20px;
+      background: rgba(0,0,0,0.25);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+    #sidebar .brand i { font-size: 1.6rem; color: #2ecc71; }
+    #sidebar nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+    #sidebar nav a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+      font-size: 0.92rem;
+    }
+    #sidebar nav a:hover,
+    #sidebar nav a.active {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border-left: 3px solid #2ecc71;
+    }
+    #sidebar nav a i { width: 20px; text-align: center; font-size: 1rem; }
+    #sidebar .sidebar-footer {
+      padding: 15px 20px;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.4);
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* ── MAIN CONTENT ── */
+    #main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── TOPBAR ── */
+    #topbar {
+      background: #fff;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      position: sticky;
+      top: 0;
+      z-index: 99;
+    }
+    #topbar .page-title { font-weight: 600; color: var(--primary); font-size: 1.05rem; }
+    #topbar .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .notif-btn { position: relative; background: none; border: none; font-size: 1.3rem; color: #555; cursor: pointer; }
+    .notif-badge {
+      position: absolute;
+      top: -4px; right: -4px;
+      background: #e74c3c;
+      color: #fff;
+      font-size: 0.65rem;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: #333;
+    }
+    .avatar {
+      width: 32px; height: 32px;
+      background: var(--secondary);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    /* ── PAGE SECTIONS ── */
+    .page-section {
+      display: none;
+      padding: 24px;
+      animation: fadeIn 0.2s ease;
+    }
+    .page-section.active { display: block; }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: none; } }
+
+    /* ── KPI CARDS ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      transition: transform 0.15s;
+    }
+    .kpi-card:hover { transform: translateY(-2px); }
+    .kpi-icon {
+      width: 50px; height: 50px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+    .kpi-value { font-size: 1.7rem; font-weight: 700; line-height: 1; }
+    .kpi-label { font-size: 0.78rem; color: #666; margin-top: 3px; }
+
+    /* ── MAP ── */
+    #map-container { height: 420px; border-radius: 10px; overflow: hidden; background: #ddd; }
+    #map { width: 100%; height: 100%; }
+
+    /* ── TABLES ── */
+    .card-box {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .card-box-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid #eee;
+      font-weight: 600;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.95rem;
+    }
+    .table-responsive { max-height: 360px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { background: #f8fafc; color: #555; font-weight: 600; padding: 10px 14px; text-align: left; position: sticky; top: 0; }
+    td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8f9fa; }
+
+    /* ── STATUS BADGES ── */
+    .badge-status {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-empty    { background: #d5f5e3; color: #1e8449; }
+    .badge-half     { background: #fef9e7; color: #b7950b; }
+    .badge-full     { background: #fdecea; color: #c0392b; }
+    .badge-collected{ background: #e8f4f8; color: #1a5276; }
+    .badge-open     { background: #fdecea; color: #c0392b; }
+    .badge-resolved { background: #d5f5e3; color: #1e8449; }
+    .badge-in_progress { background: #fef9e7; color: #b7950b; }
+
+    /* ── FILL BAR ── */
+    .fill-bar {
+      height: 8px;
+      background: #eee;
+      border-radius: 4px;
+      overflow: hidden;
+      min-width: 80px;
+    }
+    .fill-bar-inner { height: 100%; border-radius: 4px; transition: width 0.4s; }
+
+    /* ── FILTER ROW ── */
+    .filter-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-row select, .filter-row input {
+      padding: 7px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.87rem;
+      background: #fff;
+    }
+
+    /* ── LOGIN SCREEN ── */
+    #login-screen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, var(--primary) 0%, #0d3349 50%, var(--secondary) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .login-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 40px 36px;
+      width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .login-logo { text-align: center; margin-bottom: 28px; }
+    .login-logo .icon { font-size: 3rem; color: var(--secondary); }
+    .login-logo h2 { font-weight: 700; color: var(--primary); margin-top: 6px; }
+    .login-logo p  { color: #888; font-size: 0.85rem; }
+    .form-label { font-size: 0.85rem; font-weight: 600; color: #333; margin-bottom: 4px; display: block; }
+    .form-control-bb {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 14px;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    .form-control-bb:focus { border-color: var(--primary); }
+    .btn-login {
+      width: 100%;
+      padding: 11px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-login:hover { background: #154360; }
+    .login-error { background: #fdecea; color: #c0392b; padding: 8px 12px; border-radius: 6px; font-size: 0.83rem; margin-bottom: 12px; display: none; }
+
+    /* Charts */
+    .chart-box { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      #sidebar { transform: translateX(-100%); }
+      #sidebar.open { transform: none; }
+      #main { margin-left: 0; }
+    }
+
+    /* Refresh spinner */
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+
+<body>
+
+<!-- ═══════════════ LOGIN SCREEN ═══════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon"><i class="bi bi-trash2-fill"></i></div>
+      <h2>BinBuddy</h2>
+      <p>Smart Waste Management System</p>
+    </div>
+    <div id="login-error" class="login-error"></div>
+    <label class="form-label">Email Address</label>
+    <input class="form-control-bb" type="email" id="login-email" placeholder="admin@municipal.gov.in" />
+    <label class="form-label">Password</label>
+    <input class="form-control-bb" type="password" id="login-password" placeholder="••••••••" />
+    <button class="btn-login" onclick="doLogin()">
+      <i class="bi bi-box-arrow-in-right"></i> Login to Dashboard
+    </button>
+    <p style="text-align:center;margin-top:14px;font-size:0.8rem;color:#999;">
+      Demo: admin@municipal.gov.in / admin123
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<div id="sidebar">
+  <div class="brand">
+    <i class="bi bi-trash2-fill"></i>
+    <span>BinBuddy</span>
+  </div>
+  <nav>
+    <a href="#" class="active" onclick="showSection('overview')">
+      <i class="bi bi-grid-1x2-fill"></i> Overview
+    </a>
+    <a href="#" onclick="showSection('map')">
+      <i class="bi bi-map-fill"></i> Live Map
+    </a>
+    <a href="#" onclick="showSection('bins')">
+      <i class="bi bi-trash-fill"></i> Bins
+    </a>
+    <a href="#" onclick="showSection('collections')">
+      <i class="bi bi-truck"></i> Collections
+    </a>
+    <a href="#" onclick="showSection('complaints')">
+      <i class="bi bi-megaphone-fill"></i> Complaints
+    </a>
+    <a href="#" onclick="showSection('analytics')">
+      <i class="bi bi-bar-chart-fill"></i> Analytics
+    </a>
+    <a href="#" onclick="showSection('reports')">
+      <i class="bi bi-file-earmark-bar-graph-fill"></i> Reports
+    </a>
+    <a href="#" onclick="showSection('collectors')">
+      <i class="bi bi-people-fill"></i> Collectors
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    BinBuddy v1.0.0 &copy; 2024<br/>
+    Municipal Corporation
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<div id="main">
+
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div class="page-title" id="page-title">Dashboard Overview</div>
+    <div class="topbar-right">
+      <span id="live-clock" style="font-size:0.82rem;color:#777;"></span>
+      <button class="notif-btn" onclick="showSection('complaints')">
+        <i class="bi bi-bell-fill"></i>
+        <span class="notif-badge" id="notif-count">0</span>
+      </button>
+      <div class="user-chip" onclick="logout()">
+        <div class="avatar" id="user-avatar">A</div>
+        <span id="user-name">Admin</span>
+        <i class="bi bi-box-arrow-right" style="font-size:0.9rem;color:#999;"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── OVERVIEW ── -->
+  <div class="page-section active" id="section-overview">
+    <div class="kpi-grid" id="kpi-grid">
+      <!-- filled by JS -->
+    </div>
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card-box">
+          <div class="card-box-header">
+            <span><i class="bi bi-map"></i> Live Bin Map</span>
+            <button class="btn btn-sm btn-outline-secondary" onclick="loadMapSection()">
+              <i class="bi bi-fullscreen"></i> Expand
+            </button>
+          </div>
+          <div id="map-container">
+            <div id="map"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="card-box h-100">
+          <div class="card-box-header">
+            <span><i class="bi bi-list-ul"></i> Critical Bins</span>
+            <span id="full-count" class="badge bg-danger">—</span>
+          </div>
+          <div class="table-responsive" id="critical-bins-table">
+            <table>
+              <thead><tr><th>Bin</th><th>Fill</th><th>Zone</th></tr></thead>
+              <tbody id="critical-bins-body">
+                <tr><td colspan="3" style="text-align:center;color:#aaa;padding:20px">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LIVE MAP ── -->
+  <div class="page-section" id="section-map">
+    <div class="card-box" style="height:calc(100vh - 100px);">
+      <div class="card-box-header">
+        <span><i class="bi bi-geo-alt-fill"></i> Live Bin Map</span>
+        <div style="display:flex;gap:10px;align-items:center;font-size:0.8rem;">
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:#2ecc71;border-radius:50%;display:inline-block;"></span> Empty</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:#f39c12;border-radius:50%;display:inline-block;"></span> Half</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:#e74c3c;border-radius:50%;display:inline-block;"></span> Full</span>
+          <button class="btn btn-sm btn-outline-primary" onclick="loadBinsForMap()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+        </div>
+      </div>
+      <div id="map-big" style="height:calc(100% - 52px);"></div>
+    </div>
+  </div>
+
+  <!-- ── BINS TABLE ── -->
+  <div class="page-section" id="section-bins">
+    <div class="filter-row">
+      <select id="bin-zone-filter" onchange="loadBinsTable()">
+        <option value="">All Zones</option>
+      </select>
+      <select id="bin-status-filter" onchange="loadBinsTable()">
+        <option value="">All Status</option>
+        <option value="full">Full</option>
+        <option value="half">Half</option>
+        <option value="empty">Empty</option>
+        <option value="collected">Collected</option>
+      </select>
+      <button class="btn btn-sm btn-success" onclick="loadBinsTable()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addBinModal">
+        <i class="bi bi-plus-lg"></i> Add Bin
+      </button>
+    </div>
+    <div class="card-box">
+      <div class="card-box-header">
+        <span><i class="bi bi-trash-fill"></i> All Bins</span>
+        <span id="bins-count" class="text-muted" style="font-size:0.82rem;">Loading…</span>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Bin Code</th><th>Location</th><th>Zone</th>
+              <th>Fill Level</th><th>Status</th><th>Battery</th><th>Last Update</th>
+            </tr>
+          </thead>
+          <tbody id="bins-table-body">
+            <tr><td colspan="7" style="text-align:center;padding:30px;color:#aaa">Loading bins…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── COLLECTIONS ── -->
+  <div class="page-section" id="section-collections">
+    <div class="card-box">
+      <div class="card-box-header">
+        <span><i class="bi bi-truck"></i> Collection Log</span>
+        <button class="btn btn-sm btn-success" onclick="loadCollections()"><i class="bi bi-arrow-clockwise"></i></button>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead><tr><th>#</th><th>Bin</th><th>Collector</th><th>Fill at Collection</th><th>Date / Time</th><th>Notes</th></tr></thead>
+          <tbody id="collections-body">
+            <tr><td colspan="6" style="text-align:center;padding:30px;color:#aaa">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── COMPLAINTS ── -->
+  <div class="page-section" id="section-complaints">
+    <div class="filter-row">
+      <select id="complaint-status-filter" onchange="loadComplaints()">
+        <option value="">All Status</option>
+        <option value="open">Open</option>
+        <option value="in_progress">In Progress</option>
+        <option value="resolved">Resolved</option>
+      </select>
+      <button class="btn btn-sm btn-success" onclick="loadComplaints()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </div>
+    <div class="card-box">
+      <div class="card-box-header">
+        <span><i class="bi bi-megaphone-fill"></i> Citizen Complaints</span>
+        <span id="complaints-open-count" class="badge bg-danger">0 Open</span>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead><tr><th>#</th><th>Bin</th><th>Category</th><th>Description</th><th>Priority</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+          <tbody id="complaints-body">
+            <tr><td colspan="8" style="text-align:center;padding:30px;color:#aaa">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ANALYTICS ── -->
+  <div class="page-section" id="section-analytics">
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="chart-box">
+          <h6 class="mb-3" style="color:var(--primary)"><i class="bi bi-pie-chart-fill"></i> Bin Status Distribution</h6>
+          <canvas id="statusChart" height="260"></canvas>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="chart-box">
+          <h6 class="mb-3" style="color:var(--primary)"><i class="bi bi-bar-chart-fill"></i> Daily Collections (Last 7 Days)</h6>
+          <canvas id="collectionsChart" height="260"></canvas>
+        </div>
+      </div>
+      <div class="col-md-12">
+        <div class="chart-box">
+          <h6 class="mb-3" style="color:var(--primary)"><i class="bi bi-bar-chart-steps"></i> Zone-wise Bin Status</h6>
+          <canvas id="zoneChart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── REPORTS ── -->
+  <div class="page-section" id="section-reports">
+    <div class="card-box" style="padding:24px;">
+      <h5 style="color:var(--primary);margin-bottom:20px"><i class="bi bi-file-earmark-bar-graph-fill"></i> Generate Reports</h5>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div style="background:var(--light-bg);border-radius:10px;padding:20px;text-align:center;">
+            <i class="bi bi-file-earmark-pdf" style="font-size:2.5rem;color:#e74c3c;"></i>
+            <h6 class="mt-2">Daily Collection Report</h6>
+            <p style="font-size:0.8rem;color:#888;">Summary of today's collections per zone</p>
+            <button class="btn btn-danger btn-sm mt-2" onclick="generateReport('daily')">Download PDF</button>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div style="background:var(--light-bg);border-radius:10px;padding:20px;text-align:center;">
+            <i class="bi bi-file-earmark-spreadsheet" style="font-size:2.5rem;color:#2ecc71;"></i>
+            <h6 class="mt-2">Bin Status Export</h6>
+            <p style="font-size:0.8rem;color:#888;">Full bin inventory with fill levels (CSV)</p>
+            <button class="btn btn-success btn-sm mt-2" onclick="exportCSV()">Download CSV</button>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div style="background:var(--light-bg);border-radius:10px;padding:20px;text-align:center;">
+            <i class="bi bi-file-earmark-text" style="font-size:2.5rem;color:var(--primary);"></i>
+            <h6 class="mt-2">Complaints Report</h6>
+            <p style="font-size:0.8rem;color:#888;">Open & resolved complaints summary</p>
+            <button class="btn btn-primary btn-sm mt-2" onclick="generateReport('complaints')">Download PDF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── COLLECTORS ── -->
+  <div class="page-section" id="section-collectors">
+    <div class="card-box">
+      <div class="card-box-header">
+        <span><i class="bi bi-people-fill"></i> Registered Collectors</span>
+        <button class="btn btn-sm btn-success" onclick="loadCollectors()"><i class="bi bi-arrow-clockwise"></i></button>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Zone</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="collectors-body">
+            <tr><td colspan="7" style="text-align:center;padding:30px;color:#aaa">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end #main -->
+
+<!-- Add Bin Modal -->
+<div class="modal fade" id="addBinModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--primary);color:#fff;">
+        <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Add New Bin</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input class="form-control mb-2" id="nb-code"     placeholder="Bin Code (e.g. BIN-W01-001)" />
+        <input class="form-control mb-2" id="nb-location" placeholder="Location Name" />
+        <input class="form-control mb-2" id="nb-lat"      placeholder="Latitude" type="number" step="any" />
+        <input class="form-control mb-2" id="nb-lng"      placeholder="Longitude" type="number" step="any" />
+        <select class="form-control mb-2" id="nb-zone">
+          <option value="">Select Zone</option>
+        </select>
+        <input class="form-control mb-2" id="nb-device"   placeholder="ESP Device ID (optional)" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="addBin()">Add Bin</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+  // ════════════════════════════════════════════════
+  // CONFIG – change API_BASE if hosted elsewhere
+  // ════════════════════════════════════════════════
+  const API_BASE = `http://${window.location.hostname}:5000/api`;
+  const MAPS_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'; // <-- replace
+  let ACCESS_TOKEN = localStorage.getItem('binbuddy_token');
+  let USER_DATA    = JSON.parse(localStorage.getItem('binbuddy_user') || '{}');
+  let mapInstance  = null;
+  let mapBigInstance = null;
+  let binMarkers   = [];
+  let binMarkersB  = [];
+  let refreshTimer = null;
+  let allBinsCache = [];
+
+  // ── AUTH ────────────────────────────────────────
+  async function doLogin() {
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl    = document.getElementById('login-error');
+    errEl.style.display = 'none';
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) { errEl.textContent = data.error || 'Login failed'; errEl.style.display = 'block'; return; }
+
+      ACCESS_TOKEN = data.access_token;
+      USER_DATA    = data.user;
+      localStorage.setItem('binbuddy_token', ACCESS_TOKEN);
+      localStorage.setItem('binbuddy_user', JSON.stringify(USER_DATA));
+      initDashboard();
+    } catch(e) {
+      errEl.textContent = 'Cannot reach server. Running in demo mode.';
+      errEl.style.display = 'block';
+      // Demo mode: show dashboard with mock data
+      ACCESS_TOKEN = 'demo';
+      USER_DATA    = { name: 'Admin Demo', role: 'admin', id: 1 };
+      initDashboard();
+    }
+  }
+
+  function logout() {
+    localStorage.clear();
+    location.reload();
+  }
+
+  // Handle Enter key on login
+  document.getElementById('login-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  // ── INIT ────────────────────────────────────────
+  function initDashboard() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('user-name').textContent = USER_DATA.name || 'User';
+    document.getElementById('user-avatar').textContent = (USER_DATA.name || 'A')[0].toUpperCase();
+    startClock();
+    loadOverview();
+    loadGoogleMaps();
+    // Auto-refresh every 30 seconds
+    refreshTimer = setInterval(loadOverview, 30000);
+  }
+
+  // Auto-login if token exists
+  if (ACCESS_TOKEN) initDashboard();
+
+  // ── NAVIGATION ──────────────────────────────────
+  const sectionTitles = {
+    overview: 'Dashboard Overview',
+    map: 'Live Bin Map',
+    bins: 'Bin Management',
+    collections: 'Collection Log',
+    complaints: 'Citizen Complaints',
+    analytics: 'Analytics & Charts',
+    reports: 'Reports',
+    collectors: 'Collector Management'
+  };
+
+  function showSection(name) {
+    document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('#sidebar nav a').forEach(a => a.classList.remove('active'));
+    document.getElementById(`section-${name}`).classList.add('active');
+    const links = document.querySelectorAll('#sidebar nav a');
+    links.forEach(a => { if(a.getAttribute('onclick') && a.getAttribute('onclick').includes(name)) a.classList.add('active'); });
+    document.getElementById('page-title').textContent = sectionTitles[name] || name;
+
+    // Lazy-load section data
+    if (name === 'bins')        loadBinsTable();
+    if (name === 'collections') loadCollections();
+    if (name === 'complaints')  loadComplaints();
+    if (name === 'analytics')   loadAnalytics();
+    if (name === 'collectors')  loadCollectors();
+    if (name === 'map')         { loadBinsForMap(); }
+    return false;
+  }
+
+  // ── CLOCK ───────────────────────────────────────
+  function startClock() {
+    setInterval(() => {
+      document.getElementById('live-clock').textContent =
+        new Date().toLocaleString('en-IN', { hour12: true });
+    }, 1000);
+  }
+
+  // ── API HELPER ──────────────────────────────────
+  async function apiFetch(path, options = {}) {
+    const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+    if (ACCESS_TOKEN && ACCESS_TOKEN !== 'demo')
+      headers['Authorization'] = `Bearer ${ACCESS_TOKEN}`;
+    const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    if (res.status === 401) { logout(); return null; }
+    return res;
+  }
+
+  // ── MOCK DATA (for demo/offline mode) ───────────
+  const MOCK_BINS = [
+    {id:1,bin_code:'BIN-W01-001',location_name:'Gandhi Chowk',latitude:20.0059,longitude:73.7667,fill_level:92,status:'full',battery_level:78,zone_id:1},
+    {id:2,bin_code:'BIN-W01-002',location_name:'Market Road',latitude:20.0120,longitude:73.7710,fill_level:55,status:'half',battery_level:92,zone_id:1},
+    {id:3,bin_code:'BIN-W02-001',location_name:'Nehru Park',latitude:19.9990,longitude:73.7640,fill_level:15,status:'empty',battery_level:88,zone_id:2},
+    {id:4,bin_code:'BIN-W02-002',location_name:'College Road',latitude:20.0200,longitude:73.7580,fill_level:88,status:'full',battery_level:45,zone_id:2},
+    {id:5,bin_code:'BIN-W03-001',location_name:'Bus Stand',latitude:20.0080,longitude:73.7800,fill_level:40,status:'half',battery_level:99,zone_id:3},
+    {id:6,bin_code:'BIN-W03-002',location_name:'Hospital Gate',latitude:19.9950,longitude:73.7720,fill_level:5,status:'empty',battery_level:76,zone_id:3},
+  ];
+  const MOCK_SUMMARY = { total_bins:6,full_bins:2,half_bins:2,empty_bins:2,collected_today:5,open_complaints:3,active_collectors:4 };
+  const MOCK_COLLECTIONS = [
+    {id:1,bin_id:1,collector_id:2,fill_at_collection:95,collected_at:'2024-01-15T09:30:00',notes:'Overflowing'},
+    {id:2,bin_id:3,collector_id:2,fill_at_collection:88,collected_at:'2024-01-15T11:00:00',notes:''},
+  ];
+  const MOCK_COMPLAINTS = [
+    {id:1,bin_id:1,category:'overflow',description:'Bin is overflowing near Gandhi Chowk',priority:'high',status:'open',created_at:'2024-01-15T08:00:00'},
+    {id:2,bin_id:4,category:'smell',description:'Bad smell from College Road bin',priority:'medium',status:'in_progress',created_at:'2024-01-14T16:00:00'},
+    {id:3,bin_id:2,category:'damage',description:'Bin lid broken',priority:'low',status:'resolved',created_at:'2024-01-13T10:00:00'},
+  ];
+
+  // ── OVERVIEW ────────────────────────────────────
+  async function loadOverview() {
+    let summary, bins;
+    if (ACCESS_TOKEN === 'demo') {
+      summary = MOCK_SUMMARY;
+      bins    = MOCK_BINS;
+    } else {
+      try {
+        const [r1, r2] = await Promise.all([
+          apiFetch('/reports/summary'),
+          apiFetch('/bins/')
+        ]);
+        summary = await r1.json();
+        bins    = await r2.json();
+      } catch { summary = MOCK_SUMMARY; bins = MOCK_BINS; }
+    }
+    allBinsCache = bins;
+    renderKPIs(summary);
+    renderCriticalBins(bins.filter(b => b.status === 'full' || b.fill_level >= 80));
+    document.getElementById('notif-count').textContent = summary.open_complaints;
+    document.getElementById('full-count').textContent  = summary.full_bins;
+    updateMapMarkers(bins);
+  }
+
+  function renderKPIs(s) {
+    const cards = [
+      { label:'Total Bins',       value: s.total_bins,        icon:'bi-trash-fill',             color:'#1a5276', bg:'#d6eaf8' },
+      { label:'Full Bins 🚨',     value: s.full_bins,         icon:'bi-exclamation-triangle-fill',color:'#c0392b',bg:'#fdecea' },
+      { label:'Half Full',        value: s.half_bins,         icon:'bi-hourglass-split',         color:'#b7950b',bg:'#fef9e7' },
+      { label:'Empty Bins',       value: s.empty_bins,        icon:'bi-check-circle-fill',       color:'#1e8449',bg:'#d5f5e3' },
+      { label:'Collected Today',  value: s.collected_today,   icon:'bi-truck',                   color:'#117a65',bg:'#d0f0ea' },
+      { label:'Open Complaints',  value: s.open_complaints,   icon:'bi-megaphone-fill',          color:'#8e44ad',bg:'#f4ecf7' },
+      { label:'Active Collectors',value: s.active_collectors, icon:'bi-people-fill',             color:'#2c3e50',bg:'#eaecee' },
+    ];
+    document.getElementById('kpi-grid').innerHTML = cards.map(c => `
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:${c.bg};color:${c.color}">
+          <i class="bi ${c.icon}"></i>
+        </div>
+        <div>
+          <div class="kpi-value" style="color:${c.color}">${c.value}</div>
+          <div class="kpi-label">${c.label}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderCriticalBins(bins) {
+    const tbody = document.getElementById('critical-bins-body');
+    if (!bins.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:#2ecc71"><i class="bi bi-check-circle-fill"></i> All bins OK</td></tr>';
+      return;
+    }
+    tbody.innerHTML = bins.slice(0,10).map(b => `
+      <tr>
+        <td><strong>${b.bin_code}</strong></td>
+        <td>
+          <div class="fill-bar"><div class="fill-bar-inner" style="width:${b.fill_level}%;background:${b.fill_level>=90?'#e74c3c':'#f39c12'}"></div></div>
+          <span style="font-size:0.78rem;color:#666">${b.fill_level.toFixed(0)}%</span>
+        </td>
+        <td>W-${b.zone_id}</td>
+      </tr>
+    `).join('');
+  }
+
+  // ── GOOGLE MAPS ─────────────────────────────────
+  function loadGoogleMaps() {
+    if (MAPS_KEY === 'YOUR_GOOGLE_MAPS_API_KEY') {
+      // Fallback: show OpenStreetMap via leaflet if no key
+      loadLeafletMap();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&callback=initGoogleMap`;
+    script.async = true;
+    document.head.appendChild(script);
+  }
+
+  // ── LEAFLET FALLBACK (works without API key) ────
+  function loadLeafletMap() {
+    const css = document.createElement('link');
+    css.rel  = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = () => {
+      // Small map in overview
+      mapInstance = L.map('map').setView([20.005, 73.767], 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(mapInstance);
+      // Big map in map section
+      mapBigInstance = L.map('map-big').setView([20.005, 73.767], 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(mapBigInstance);
+      updateMapMarkers(allBinsCache.length ? allBinsCache : MOCK_BINS);
+    };
+    document.head.appendChild(script);
+  }
+
+  function getMarkerColor(status, fill) {
+    if (status === 'full' || fill >= 90) return '#e74c3c';
+    if (status === 'half' || fill >= 50) return '#f39c12';
+    return '#2ecc71';
+  }
+
+  function updateMapMarkers(bins) {
+    if (!window.L || !mapInstance) return;
+
+    // Clear old markers
+    binMarkers.forEach(m => m.remove());
+    binMarkers = [];
+    binMarkersB.forEach(m => m.remove());
+    binMarkersB = [];
+
+    bins.forEach(bin => {
+      const color = getMarkerColor(bin.status, bin.fill_level);
+      const icon  = L.divIcon({
+        html: `<div style="width:18px;height:18px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>`,
+        iconSize: [18, 18], iconAnchor: [9, 9]
+      });
+      const popup = `<b>${bin.bin_code}</b><br/>${bin.location_name}<br/>Fill: <b>${bin.fill_level.toFixed(0)}%</b><br/>Status: ${bin.status}`;
+
+      const m1 = L.marker([bin.latitude, bin.longitude], { icon }).addTo(mapInstance).bindPopup(popup);
+      const m2 = L.marker([bin.latitude, bin.longitude], { icon }).addTo(mapBigInstance).bindPopup(popup);
+      binMarkers.push(m1);
+      binMarkersB.push(m2);
+    });
+  }
+
+  function loadBinsForMap() {
+    loadOverview();
+  }
+
+  // ── BINS TABLE ──────────────────────────────────
+  async function loadBinsTable() {
+    let bins;
+    if (ACCESS_TOKEN === 'demo') {
+      bins = MOCK_BINS;
+    } else {
+      try {
+        const zone   = document.getElementById('bin-zone-filter')?.value || '';
+        const status = document.getElementById('bin-status-filter')?.value || '';
+        const params = new URLSearchParams();
+        if (zone)   params.append('zone_id', zone);
+        if (status) params.append('status', status);
+        const res = await apiFetch(`/bins/?${params.toString()}`);
+        bins = await res.json();
+      } catch { bins = MOCK_BINS; }
+    }
+
+    document.getElementById('bins-count').textContent = `${bins.length} bins found`;
+    document.getElementById('bins-table-body').innerHTML = bins.map(b => `
+      <tr>
+        <td><strong>${b.bin_code}</strong></td>
+        <td>${b.location_name || '—'}</td>
+        <td>Ward ${b.zone_id}</td>
+        <td>
+          <div class="fill-bar"><div class="fill-bar-inner" style="width:${b.fill_level}%;background:${b.fill_level>=90?'#e74c3c':b.fill_level>=50?'#f39c12':'#2ecc71'}"></div></div>
+          <span style="font-size:0.78rem">${b.fill_level.toFixed(1)}%</span>
+        </td>
+        <td><span class="badge-status badge-${b.status}">${b.status.toUpperCase()}</span></td>
+        <td>
+          <span style="color:${b.battery_level<20?'#e74c3c':'#2ecc71'}">${b.battery_level.toFixed(0)}%</span>
+        </td>
+        <td style="font-size:0.78rem;color:#888">${b.last_updated ? new Date(b.last_updated).toLocaleString('en-IN') : '—'}</td>
+      </tr>
+    `).join('');
+  }
+
+  // ── COLLECTIONS ─────────────────────────────────
+  async function loadCollections() {
+    let items;
+    if (ACCESS_TOKEN === 'demo') {
+      items = MOCK_COLLECTIONS;
+    } else {
+      try {
+        const res = await apiFetch('/collections/');
+        items = await res.json();
+      } catch { items = MOCK_COLLECTIONS; }
+    }
+    document.getElementById('collections-body').innerHTML = items.map(c => `
+      <tr>
+        <td>${c.id}</td>
+        <td>Bin #${c.bin_id}</td>
+        <td>Collector #${c.collector_id || '—'}</td>
+        <td>${c.fill_at_collection ? c.fill_at_collection.toFixed(0)+'%' : '—'}</td>
+        <td>${new Date(c.collected_at).toLocaleString('en-IN')}</td>
+        <td>${c.notes || '—'}</td>
+      </tr>
+    `).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:#aaa">No collections found</td></tr>';
+  }
+
+  // ── COMPLAINTS ──────────────────────────────────
+  async function loadComplaints() {
+    let items;
+    if (ACCESS_TOKEN === 'demo') {
+      items = MOCK_COMPLAINTS;
+    } else {
+      try {
+        const status = document.getElementById('complaint-status-filter')?.value || '';
+        const res    = await apiFetch(`/complaints/?status=${status}`);
+        items = await res.json();
+      } catch { items = MOCK_COMPLAINTS; }
+    }
+    const open = items.filter(c => c.status === 'open').length;
+    document.getElementById('complaints-open-count').textContent = `${open} Open`;
+    document.getElementById('complaints-body').innerHTML = items.map(c => `
+      <tr>
+        <td>${c.id}</td>
+        <td>${c.bin_id ? 'Bin #'+c.bin_id : '—'}</td>
+        <td>${c.category}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.description}</td>
+        <td><span class="badge-status" style="background:${c.priority==='high'?'#fdecea':c.priority==='medium'?'#fef9e7':'#eee'};color:${c.priority==='high'?'#c0392b':c.priority==='medium'?'#b7950b':'#555'}">${c.priority}</span></td>
+        <td><span class="badge-status badge-${c.status}">${c.status.replace('_',' ').toUpperCase()}</span></td>
+        <td style="font-size:0.78rem">${new Date(c.created_at).toLocaleDateString('en-IN')}</td>
+        <td>
+          ${c.status !== 'resolved' ? `<button class="btn btn-xs btn-outline-success" style="font-size:0.75rem;padding:2px 8px" onclick="resolveComplaint(${c.id})">Resolve</button>` : '✓'}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function resolveComplaint(id) {
+    if (ACCESS_TOKEN !== 'demo') {
+      await apiFetch(`/complaints/${id}`, { method:'PUT', body: JSON.stringify({status:'resolved'}) });
+    }
+    loadComplaints();
+  }
+
+  // ── ANALYTICS ───────────────────────────────────
+  let statusChartInst, collectionsChartInst, zoneChartInst;
+
+  async function loadAnalytics() {
+    let summary, daily, zoneStats;
+    if (ACCESS_TOKEN === 'demo') {
+      summary   = MOCK_SUMMARY;
+      daily     = [{date:'2024-01-09',count:4},{date:'2024-01-10',count:7},{date:'2024-01-11',count:5},{date:'2024-01-12',count:9},{date:'2024-01-13',count:6},{date:'2024-01-14',count:8},{date:'2024-01-15',count:5}];
+      zoneStats = [{zone:'Ward 1',full:1,half:1,empty:0},{zone:'Ward 2',full:1,half:0,empty:1},{zone:'Ward 3',full:0,half:1,empty:1}];
+    } else {
+      try {
+        const [r1,r2,r3] = await Promise.all([
+          apiFetch('/reports/summary'),
+          apiFetch('/reports/collections-daily'),
+          apiFetch('/reports/zone-status')
+        ]);
+        summary   = await r1.json();
+        daily     = await r2.json();
+        zoneStats = await r3.json();
+      } catch { return; }
+    }
+
+    // Status donut
+    if (statusChartInst) statusChartInst.destroy();
+    statusChartInst = new Chart(document.getElementById('statusChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Empty', 'Half Full', 'Full'],
+        datasets: [{ data: [summary.empty_bins, summary.half_bins, summary.full_bins],
+                     backgroundColor: ['#2ecc71', '#f39c12', '#e74c3c'],
+                     borderWidth: 2 }]
+      },
+      options: { plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+    });
+
+    // Collections bar
+    if (collectionsChartInst) collectionsChartInst.destroy();
+    collectionsChartInst = new Chart(document.getElementById('collectionsChart'), {
+      type: 'bar',
+      data: {
+        labels: daily.map(d => d.date.slice(5)),
+        datasets: [{ label: 'Collections', data: daily.map(d => d.count),
+                     backgroundColor: '#1a5276', borderRadius: 6 }]
+      },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    // Zone stacked bar
+    if (zoneChartInst) zoneChartInst.destroy();
+    zoneChartInst = new Chart(document.getElementById('zoneChart'), {
+      type: 'bar',
+      data: {
+        labels: zoneStats.map(z => z.zone || z.ward),
+        datasets: [
+          { label: 'Empty', data: zoneStats.map(z => z.empty), backgroundColor: '#2ecc71', borderRadius: 4 },
+          { label: 'Half',  data: zoneStats.map(z => z.half),  backgroundColor: '#f39c12', borderRadius: 4 },
+          { label: 'Full',  data: zoneStats.map(z => z.full),  backgroundColor: '#e74c3c', borderRadius: 4 },
+        ]
+      },
+      options: { plugins: { legend: { position: 'top' } }, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }
+    });
+  }
+
+  // ── COLLECTORS ──────────────────────────────────
+  async function loadCollectors() {
+    const mockCollectors = [
+      {id:2,name:'Ramesh Patil',email:'ramesh@mc.gov.in',phone:'9876543210',zone_id:1,is_approved:true},
+      {id:3,name:'Sanjay Kumar',email:'sanjay@mc.gov.in',phone:'9876543211',zone_id:2,is_approved:true},
+      {id:4,name:'Priya Sharma',email:'priya@mc.gov.in', phone:'9876543212',zone_id:3,is_approved:false},
+    ];
+    document.getElementById('collectors-body').innerHTML = mockCollectors.map(u => `
+      <tr>
+        <td>${u.id}</td>
+        <td><strong>${u.name}</strong></td>
+        <td>${u.email}</td>
+        <td>${u.phone}</td>
+        <td>Ward ${u.zone_id}</td>
+        <td><span class="badge-status ${u.is_approved?'badge-empty':'badge-half'}">${u.is_approved?'Active':'Pending'}</span></td>
+        <td>
+          ${!u.is_approved ? `<button class="btn btn-xs btn-success" style="font-size:0.75rem;padding:2px 8px">Approve</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // ── ADD BIN ─────────────────────────────────────
+  async function addBin() {
+    const payload = {
+      bin_code:      document.getElementById('nb-code').value,
+      location_name: document.getElementById('nb-location').value,
+      latitude:      parseFloat(document.getElementById('nb-lat').value),
+      longitude:     parseFloat(document.getElementById('nb-lng').value),
+      zone_id:       parseInt(document.getElementById('nb-zone').value),
+      device_id:     document.getElementById('nb-device').value
+    };
+    if (ACCESS_TOKEN !== 'demo') {
+      await apiFetch('/bins/', { method:'POST', body: JSON.stringify(payload) });
+    }
+    bootstrap.Modal.getInstance(document.getElementById('addBinModal')).hide();
+    loadBinsTable();
+    alert('Bin added successfully!');
+  }
+
+  // ── CSV EXPORT ──────────────────────────────────
+  function exportCSV() {
+    const bins = allBinsCache.length ? allBinsCache : MOCK_BINS;
+    const rows = [['Bin Code','Location','Fill Level','Status','Battery','Last Updated']];
+    bins.forEach(b => rows.push([b.bin_code, b.location_name, b.fill_level+'%', b.status, b.battery_level+'%', b.last_updated||'']));
+    const csv  = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'binbuddy-bins.csv'; a.click();
+  }
+
+  function generateReport(type) {
+    alert(`${type} report generation requires backend PDF library. In production this calls GET /api/reports/${type}-pdf`);
+  }
+
+  // ── INITIAL LOAD ────────────────────────────────
+  // (dashboard initialized only after login)
+</script>
+</body>
+</html>

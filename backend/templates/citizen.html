@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Dashboard - BinBuddy</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar { background-color: #198754; }
+        .container { max-width: 800px; margin-top: 2rem; }
+        .card { box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: none; }
+        .status-open { color: #dc3545; font-weight: bold; }
+        .status-resolved { color: #198754; font-weight: bold; }
+        .status-in_progress { color: #fd7e14; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="navbar navbar-dark">
+    <div class="container-fluid max-w-800">
+        <a class="navbar-brand" href="#">🌱 BinBuddy | Citizen Portal</a>
+        <div class="d-flex align-items-center text-white">
+            <span id="welcomeUser" class="me-3"></span>
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <!-- Tabs -->
+    <ul class="nav nav-pills mb-4" id="pills-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-new" data-bs-toggle="pill" data-bs-target="#new-complaint" type="button">📝 Submit Complaint</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-history" data-bs-toggle="pill" data-bs-target="#history" type="button" onclick="loadHistory()">🕒 My History</button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- TAB 1: SUBMIT COMPLAINT -->
+        <div class="tab-pane fade show active card p-4" id="new-complaint">
+            <h4 class="mb-3">Report an Issue</h4>
+            <form id="complaintForm">
+                
+                <!-- 1: Name & 2: Phone (Auto-filled & Readonly) -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Name</label>
+                        <input type="text" id="c_name" class="form-control" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Phone Number</label>
+                        <input type="text" id="c_phone" class="form-control" readonly>
+                    </div>
+                </div>
+
+                <!-- 3: Area (Bin Selection) -->
+                <div class="mb-3">
+                    <label class="form-label">Area / Nearest Bin</label>
+                    <select id="c_bin" class="form-select" required>
+                        <option value="">Loading areas...</option>
+                    </select>
+                </div>
+
+                <!-- Category -->
+                <div class="mb-3">
+                    <label class="form-label">Issue Category</label>
+                    <select id="c_category" class="form-select" required>
+                        <option value="overflow">Bin Overflowing</option>
+                        <option value="smell">Bad Odor / Smell</option>
+                        <option value="damage">Bin Damaged</option>
+                        <option value="missing">Bin Missing</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <!-- 4: Bin Photo -->
+                <div class="mb-3">
+                    <label class="form-label">Bin Photo (Optional but helpful)</label>
+                    <input class="form-control" type="file" id="c_photo" accept="image/png, image/jpeg, image/jpg">
+                </div>
+
+                <!-- 5: Description -->
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea id="c_desc" class="form-control" rows="3" placeholder="Describe the issue..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-success w-100">Submit Complaint</button>
+            </form>
+        </div>
+
+        <!-- TAB 2: COMPLAINT HISTORY -->
+        <div class="tab-pane fade card p-4" id="history">
+            <h4 class="mb-3">My Past Complaints</h4>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <tr><td colspan="4" class="text-center">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Use the same hostname as the page that's being accessed
+    const API_URL = `http://${window.location.hostname}:5000/api`;
+    const token = localStorage.getItem('access_token');
+    const user = JSON.parse(localStorage.getItem('user'));
+
+    // Authorization Check
+    if (!token || !user || user.role !== 'citizen') {
+        alert('Unauthorized! Please log in as a citizen.');
+        window.location.href = 'index.html';
+    }
+
+    // Initialization
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById('welcomeUser').innerText = `Hello, ${user.name}`;
+        document.getElementById('c_name').value = user.name;
+        document.getElementById('c_phone').value = user.phone || 'N/A';
+        loadBins();
+    });
+
+    // Logout Function
+    function logout() {
+        localStorage.clear();
+        window.location.href = 'index.html';
+    }
+
+    // Load available Bins/Areas from backend to populate dropdown
+    async function loadBins() {
+        try {
+            const res = await fetch(`${API_URL}/bins/`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const bins = await res.json();
+            const select = document.getElementById('c_bin');
+            select.innerHTML = '<option value="">-- Select Nearest Bin / Area --</option>';
+            
+            bins.forEach(bin => {
+                const opt = document.createElement('option');
+                opt.value = bin.id;
+                opt.innerText = `${bin.location_name || 'Unknown Area'} (Code: ${bin.bin_code})`;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error("Failed to load bins", err);
+        }
+    }
+
+    // Submit Complaint Form
+    document.getElementById('complaintForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const btn = e.target.querySelector('button');
+        btn.innerText = 'Submitting...';
+        btn.disabled = true;
+
+        const formData = new FormData();
+        formData.append('bin_id', document.getElementById('c_bin').value);
+        formData.append('category', document.getElementById('c_category').value);
+        formData.append('description', document.getElementById('c_desc').value);
+        
+        const photoFile = document.getElementById('c_photo').files[0];
+        if (photoFile) {
+            formData.append('image', photoFile);
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/complaints/`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }, // Note: DO NOT set Content-Type for FormData!
+                body: formData
+            });
+            
+            if (res.ok) {
+                alert('Complaint submitted successfully!');
+                document.getElementById('complaintForm').reset();
+                // Restore Read-only fields after reset
+                document.getElementById('c_name').value = user.name;
+                document.getElementById('c_phone').value = user.phone || 'N/A';
+                
+                // Switch to history tab automatically
+                document.getElementById('tab-history').click();
+            } else {
+                const data = await res.json();
+                alert(`Error: ${data.error || 'Failed to submit'}`);
+            }
+        } catch (err) {
+            alert('Server error while submitting.');
+        } finally {
+            btn.innerText = 'Submit Complaint';
+            btn.disabled = false;
+        }
+    });
+
+    // Load Complaint History
+    async function loadHistory() {
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center">Loading...</td></tr>';
+
+        try {
+            const res = await fetch(`${API_URL}/complaints/`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const complaints = await res.json();
+            
+            if (complaints.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No complaints found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            complaints.forEach(c => {
+                const date = new Date(c.created_at).toLocaleDateString('en-GB');
+                
+                // Format Status Color
+                let statusClass = `status-${c.status}`;
+                let formattedStatus = c.status.replace('_', ' ').toUpperCase();
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${date}</td>
+                        <td class="text-capitalize">${c.category}</td>
+                        <td>${c.description || '<em class="text-muted">No description</em>'}</td>
+                        <td class="${statusClass}">${formattedStatus}</td>
+                    </tr>
+                `;
+            });
+        } catch (err) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Failed to load history.</td></tr>';
+        }
+    }
+</script>
+</body>
+</html>
